@@ -1,3 +1,3 @@
 # sd2021-tp1
 
-Solution to first SD2021 assignment.
+Solution to SD2021 first lab assignment.
