@@ -4,7 +4,7 @@ import java.util.List;
 
 import tp1.api.User;
 
-public interface Users {//test gitkraken
+public interface Users {
 
 	Result<String> createUser(User user);
 	
