@@ -27,10 +27,10 @@ public class UsersRestServer extends AbstractRestServer {
 	
 	public static void main(String[] args) throws Exception {
 		Domain.set(args.length > 0 ? args[0] : "?");	
-		int port = args.length < 2 ? PORT : Integer.valueOf(args[1]);
+		//int port = args.length < 2 ? PORT : Integer.valueOf(args[1]);
 
 		Log.setLevel( Level.ALL );
 		
-		new UsersRestServer(port).start();
+		new UsersRestServer(PORT).start();
 	}	
 }

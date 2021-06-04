@@ -21,7 +21,7 @@ public class SpreadsheetsSoapServer {
 
 	public static final int PORT = 14567;
 	public static final String SERVICE_NAME = "sheets";
-	public static String SERVER_BASE_URI = "http://%s:%s/soap";
+	public static String SERVER_BASE_URI = "https://%s:%s/soap";
 	public static final String SOAP_SHEETS_PATH = "/soap/sheets";
 
 	private static Logger Log = Logger.getLogger(SpreadsheetsSoapServer.class.getName());
@@ -52,17 +52,18 @@ public class SpreadsheetsSoapServer {
 		server.setHttpsConfigurator(configurator);
 
 		server.setExecutor(Executors.newCachedThreadPool());
-
-		Endpoint soapSpreadsheetsEndpoint = Endpoint.create(new SoapSpreadsheetsWebService());
-
-		//Endpoint.publish(serverURI, new SoapSpreadsheetsWebService());
-
+		
 		Discovery.getInstance().announce(FullServiceName, serverURI);
 
+		Endpoint soapSpreadsheetsEndpoint = Endpoint.create(new SoapSpreadsheetsWebService());
+	
 		soapSpreadsheetsEndpoint.publish(server.createContext(SOAP_SHEETS_PATH));
 
 		server.start();
-
+		
+//		Discovery.getInstance().announce(FullServiceName, serverURI);
+//		Endpoint.publish(serverURI, new SoapSpreadsheetsWebService());
+		
 		Log.info(String.format("%s Soap Server ready @ %s\n", SERVICE_NAME, serverURI));
 
 	}

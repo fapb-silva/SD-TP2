@@ -35,10 +35,11 @@ public class UsersSoapServer {
 //		System.setProperty("com.sun.xml.internal.ws.transport.http.HttpAdapter.dump", "true");
 
 		Log.setLevel(Level.FINER);
-
+		
 		String ip = IP.hostAddress();
 		String serverURI = String.format(SERVER_BASE_URI, ip, PORT);
 
+		
 		// This allows client code executed by this server to ignore hostname verification
 		HttpsURLConnection.setDefaultHostnameVerifier(new InsecureHostnameVerifier());
 		
@@ -51,14 +52,15 @@ public class UsersSoapServer {
 		
 		server.setExecutor(Executors.newCachedThreadPool());
 		
-		Endpoint soapUsersEndpoint = Endpoint.create(new SoapUsersWebService());
-		
 		Discovery.getInstance().announce(String.format("%s:%s", Domain.get(), SERVICE_NAME), serverURI);
+		
+		Endpoint soapUsersEndpoint = Endpoint.create(new SoapUsersWebService());
 		
 		soapUsersEndpoint.publish(server.createContext(SOAP_USERS_PATH));
 		
 		server.start();// fim aula 7
 		
+//		Discovery.getInstance().announce(String.format("%s:%s", Domain.get(), SERVICE_NAME), serverURI);
 //		Endpoint.publish(serverURI, new SoapUsersWebService());
 
 		Log.info(String.format("%s Soap Server ready @ %s\n", SERVICE_NAME, serverURI));
