@@ -18,7 +18,7 @@ public class SpreadsheetsResources extends RestResource implements RestSpreadshe
 	final Spreadsheets impl;
 
 	public SpreadsheetsResources() {
-		var uri = String.format("http://%s:%d/rest%s", IP.hostAddress(), SpreadsheetsRestServer.PORT, PATH);
+		var uri = String.format("https://%s:%d/rest%s", IP.hostAddress(), SpreadsheetsRestServer.PORT, PATH);
 		impl = new JavaSpreadsheets(uri);
 	}
 

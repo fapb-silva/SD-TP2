@@ -19,7 +19,7 @@ public class SoapSpreadsheetsWebService implements SoapSpreadsheets {
 	final Spreadsheets impl;
 
 	public SoapSpreadsheetsWebService() {
-		var uri = String.format("http://%s:%d/soap/%s", IP.hostAddress(), SpreadsheetsSoapServer.PORT, SoapSpreadsheets.NAME);
+		var uri = String.format("https://%s:%d/soap/%s", IP.hostAddress(), SpreadsheetsSoapServer.PORT, SoapSpreadsheets.NAME);
 		impl = new JavaSpreadsheets(uri);
 	}
 
