@@ -22,7 +22,7 @@ public class UsersSoapServer {
 	public static final int PORT = 13456;
 	public static final String SERVICE_NAME = "users";
 	public static String SERVER_BASE_URI = "https://%s:%s/soap";
-	public static final String SOAP_USERS_PATH = "/soap/users";
+	public static final String SOAP_USERS_PATH = "/soap";
 
 	private static Logger Log = Logger.getLogger(UsersSoapServer.class.getName());
 
@@ -35,34 +35,38 @@ public class UsersSoapServer {
 //		System.setProperty("com.sun.xml.internal.ws.transport.http.HttpAdapter.dump", "true");
 
 		Log.setLevel(Level.FINER);
+		try {
 		
-		String ip = IP.hostAddress();
-		String serverURI = String.format(SERVER_BASE_URI, ip, PORT);
+			String ip = IP.hostAddress();
+			String serverURI = String.format(SERVER_BASE_URI, ip, PORT);
 
 		
 		// This allows client code executed by this server to ignore hostname verification
-		HttpsURLConnection.setDefaultHostnameVerifier(new InsecureHostnameVerifier());
+			HttpsURLConnection.setDefaultHostnameVerifier(new InsecureHostnameVerifier());
 		
 		//Create an https configurator to define the SSL/TLS context
-		HttpsConfigurator configurator = new HttpsConfigurator(SSLContext.getDefault());
+			HttpsConfigurator configurator = new HttpsConfigurator(SSLContext.getDefault());
 		
-		HttpsServer server = HttpsServer.create(new InetSocketAddress(ip, PORT), 0);
+			HttpsServer server = HttpsServer.create(new InetSocketAddress(ip, PORT), 0);
 		
-		server.setHttpsConfigurator(configurator);
+			server.setHttpsConfigurator(configurator);
 		
-		server.setExecutor(Executors.newCachedThreadPool());
+			server.setExecutor(Executors.newCachedThreadPool());
 		
-		Discovery.getInstance().announce(String.format("%s:%s", Domain.get(), SERVICE_NAME), serverURI);
+			Discovery.getInstance().announce(String.format("%s:%s", Domain.get(), SERVICE_NAME), serverURI);
 		
-		Endpoint soapUsersEndpoint = Endpoint.create(new SoapUsersWebService());
+			Endpoint soapUsersEndpoint = Endpoint.create(new SoapUsersWebService());
 		
-		soapUsersEndpoint.publish(server.createContext(SOAP_USERS_PATH));
+			soapUsersEndpoint.publish(server.createContext(SOAP_USERS_PATH));
 		
-		server.start();// fim aula 7
+			server.start();// fim aula 7
 		
 //		Discovery.getInstance().announce(String.format("%s:%s", Domain.get(), SERVICE_NAME), serverURI);
 //		Endpoint.publish(serverURI, new SoapUsersWebService());
 
-		Log.info(String.format("%s Soap Server ready @ %s\n", SERVICE_NAME, serverURI));
+			Log.info(String.format("%s Soap Server ready @ %s\n", SERVICE_NAME, serverURI));
+		}catch(Exception e) {
+			Log.severe(e.getMessage());
+		}
 	}
 }
