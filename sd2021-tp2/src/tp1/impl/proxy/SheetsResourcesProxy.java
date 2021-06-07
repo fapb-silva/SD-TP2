@@ -3,6 +3,7 @@ package tp1.impl.proxy;
 import static tp1.api.service.java.Result.error;
 import static tp1.api.service.java.Result.ok;
 import static tp1.api.service.java.Result.ErrorCode.BAD_REQUEST;
+import static tp1.api.service.java.Result.ErrorCode.CONFLICT;
 import static tp1.api.service.java.Result.ErrorCode.FORBIDDEN;
 import static tp1.api.service.java.Result.ErrorCode.NOT_FOUND;
 
@@ -135,8 +136,19 @@ public class SheetsResourcesProxy implements RestSpreadsheets {
 
 	@Override
 	public Spreadsheet getSpreadsheet(String sheetId, String userId, String password) {
-		// TODO
-		return null;
+		if (badParam(sheetId) || badParam(userId))
+			throw new WebApplicationException(Status.BAD_REQUEST);
+		
+		var sheet = proxyDownloadSheet(sheetId);
+		
+
+		if (sheet == null || userId == null || getUser(userId) == null)
+			throw new WebApplicationException(Status.NOT_FOUND);
+
+		if (badParam(password) || wrongPassword(userId, password) || !sheet.hasAccess(userId, DOMAIN))
+			throw new WebApplicationException(Status.FORBIDDEN);
+		else
+			return sheet;
 	}
 
 	@Override
@@ -160,19 +172,60 @@ public class SheetsResourcesProxy implements RestSpreadsheets {
 
 	@Override
 	public void updateCell(String sheetId, String cell, String rawValue, String userId, String password) {
-		// TODO
+		if (badParam(sheetId) || badParam(userId) || badParam(cell) || badParam(rawValue))
+			throw new WebApplicationException(Status.BAD_REQUEST);
 
+		var sheet = proxyDownloadSheet(sheetId);
+		
+		if (sheet == null)
+			throw new WebApplicationException(Status.NOT_FOUND);
+
+		if (badParam(password) || wrongPassword(userId, password))
+			throw new WebApplicationException(Status.FORBIDDEN);
+
+		sheet.setCellRawValue(cell, rawValue);
+		proxyUpdateSheet(sheetId, sheet);
+		sheetValuesCache.invalidate(sheetId);
 	}
 
 	@Override
 	public void shareSpreadsheet(String sheetId, String userId, String password) {
-		// TODO
+		if (badParam(sheetId) || badParam(userId))
+			throw new WebApplicationException(Status.BAD_REQUEST);
+
+		var sheet = proxyDownloadSheet(sheetId);
+		
+		if (sheet == null)
+			throw new WebApplicationException(Status.NOT_FOUND);
+
+		if (badParam(password) || wrongPassword(sheet.getOwner(), password))
+			throw new WebApplicationException(Status.FORBIDDEN);
+
+		if (!sheet.getSharedWith().add(userId))
+			throw new WebApplicationException(Status.CONFLICT);
+		else
+			proxyUpdateSheet(sheetId, sheet);
 
 	}
 
 	@Override
 	public void unshareSpreadsheet(String sheetId, String userId, String password) {
-		// TODO
+		if (badParam(sheetId) || badParam(userId))
+			throw new WebApplicationException(Status.BAD_REQUEST);
+
+		var sheet = proxyDownloadSheet(sheetId);
+		
+		if (sheet == null)
+			throw new WebApplicationException(Status.NOT_FOUND);
+
+		if (badParam(password) || wrongPassword(sheet.getOwner(), password))
+			throw new WebApplicationException(Status.FORBIDDEN);
+
+		if (sheet.getSharedWith().remove(userId)) {
+			sheetValuesCache.invalidate(sheetId);
+			proxyUpdateSheet(sheetId, sheet);
+		} else
+			throw new WebApplicationException(Status.FORBIDDEN);
 
 	}
 
