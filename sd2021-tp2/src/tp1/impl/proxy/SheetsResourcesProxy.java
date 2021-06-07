@@ -111,6 +111,7 @@ public class SheetsResourcesProxy implements RestSpreadsheets {
 		sheet.setSharedWith(ConcurrentHashMap.newKeySet());
 
 		// Load createSpreadsheet
+		userSheets.computeIfAbsent(sheet.getOwner(), (k) -> ConcurrentHashMap.newKeySet()).add(sheetId);
 		return proxyUploadSheet(sheetId,sheet);
 	}
 
