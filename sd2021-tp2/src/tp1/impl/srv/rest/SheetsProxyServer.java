@@ -35,9 +35,9 @@ public class SheetsProxyServer extends AbstractRestServer {
 		clean = args.length < 2 ? false : Boolean.parseBoolean(args[1]);//if args not length<2 then "false" else define "clean"
 		
 		Log.setLevel( Level.ALL );
-		if(clean)Log.info("*********BOOLEAN CAUGHT AS TRUE**********");
-		else Log.info("*********BOOLEAN CAUGHT AS FALSE**********");
-		Log.info("**********CLEAN VALUE IS "+args[1]+"********");
+//		if(clean)Log.info("*********BOOLEAN CAUGHT AS TRUE**********");
+//		else Log.info("*********BOOLEAN CAUGHT AS FALSE**********");
+//		Log.info("**********CLEAN VALUE IS "+args[1]+"********");
 		new SheetsProxyServer(PORT).start();
 		
 	}

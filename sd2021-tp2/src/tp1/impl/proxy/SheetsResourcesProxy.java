@@ -100,7 +100,7 @@ public class SheetsResourcesProxy implements RestSpreadsheets {
 	@Override
 	public String createSpreadsheet(Spreadsheet sheet, String password) {
 		if (badSheet(sheet) || password == null || wrongPassword(sheet.getOwner(), password))
-			return null;
+			throw new WebApplicationException(Status.BAD_REQUEST);
 
 		var sheetId = sheet.getOwner() + "-" + DOMAIN + "-" + (idInc++);
 
@@ -117,15 +117,15 @@ public class SheetsResourcesProxy implements RestSpreadsheets {
 	@Override
 	public void deleteSpreadsheet(String sheetId, String password) {
 		if (badParam(sheetId))
-			return;
+			throw new WebApplicationException(Status.BAD_REQUEST);
 
 		var sheet = proxyDownloadSheet(sheetId);
 
 		if (sheet == null)
-			return;
+			throw new WebApplicationException(Status.NOT_FOUND);
 
 		if (badParam(password) || wrongPassword(sheet.getOwner(), password))
-			return;
+			throw new WebApplicationException(Status.FORBIDDEN);
 
 		
 			proxyDeleteSheet(sheetId);
@@ -154,20 +154,20 @@ public class SheetsResourcesProxy implements RestSpreadsheets {
 	@Override
 	public String[][] getSpreadsheetValues(String sheetId, String userId, String password) {
 		if (badParam(sheetId) || badParam(userId))
-			return null;
+			throw new WebApplicationException(Status.BAD_REQUEST);
 
 		var sheet = proxyDownloadSheet(sheetId);
 		if (sheet == null)
-			return null;
+			throw new WebApplicationException(Status.NOT_FOUND);
 
 		if (badParam(password) || wrongPassword(userId, password) || !sheet.hasAccess(userId, DOMAIN))
-			return null;
+			throw new WebApplicationException(Status.FORBIDDEN);
 
 		var values = getComputedValues(sheetId);
 		if (values != null)
 			return values;
 		else
-			return null;
+			throw new WebApplicationException(Status.BAD_REQUEST);
 	}
 
 	@Override
@@ -243,20 +243,20 @@ public class SheetsResourcesProxy implements RestSpreadsheets {
 	@Override
 	public String[][] fetchSpreadsheetValues(String sheetId, String userId) {
 		if (badParam(sheetId) || badParam(userId))
-			return null;
+			throw new WebApplicationException(Status.BAD_REQUEST);
 
 		var sheet = proxyDownloadSheet(sheetId);
 		if (sheet == null)
-			return null;
+			throw new WebApplicationException(Status.NOT_FOUND);
 
 		if (!sheet.hasAccess(userId, DOMAIN))
-			return null;
+			throw new WebApplicationException(Status.FORBIDDEN);
 
 		var values = getComputedValues(sheetId);
 		if (values != null)
 			return values;
 		
-		return null;
+		throw new WebApplicationException(Status.BAD_REQUEST);
 	}
 
 	private boolean badParam(String str) {
@@ -420,7 +420,7 @@ public class SheetsResourcesProxy implements RestSpreadsheets {
 	private String proxyUpdateSheet(String sheetId, Spreadsheet sheet) {
 		OAuthRequest createSpreadsheet = new OAuthRequest(Verb.POST, UPLOAD_URL);
 		createSpreadsheet.addHeader("Dropbox-API-Arg",
-				json.toJson(new UploadArgs(DROPBOX_FOLDER+"/" + DOMAIN + "/" + sheetId, "update", false, false, false)));
+				json.toJson(new UploadArgs(DROPBOX_FOLDER+"/" + DOMAIN + "/" + sheetId, "overwrite", false, false, false)));
 		createSpreadsheet.addHeader("Content-Type", OCTET_STREAM_TYPE);
 		createSpreadsheet.setPayload(json.toJson(sheet));
 		service.signRequest(accessToken, createSpreadsheet);
