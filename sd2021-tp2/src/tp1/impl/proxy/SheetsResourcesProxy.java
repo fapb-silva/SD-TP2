@@ -377,6 +377,7 @@ public class SheetsResourcesProxy implements RestSpreadsheets {
 	private Spreadsheet proxyDownloadSheet(String sheetId) {
 		OAuthRequest getSpreadsheet = new OAuthRequest(Verb.POST, DOWNLOAD_URL);
 		getSpreadsheet.addHeader("Dropbox-API-Arg", json.toJson(new DownloadArgs(DROPBOX_FOLDER+"/" + DOMAIN + "/" + sheetId)));
+		getSpreadsheet.addHeader("Content-Type", OCTET_STREAM_TYPE);
 		service.signRequest(accessToken, getSpreadsheet);
 
 		Response r = null;
