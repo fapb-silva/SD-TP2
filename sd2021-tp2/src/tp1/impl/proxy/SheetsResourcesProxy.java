@@ -3,6 +3,8 @@ package tp1.impl.proxy;
 import static tp1.api.service.java.Result.error;
 import static tp1.api.service.java.Result.ErrorCode.BAD_REQUEST;
 
+import java.util.concurrent.ConcurrentHashMap;
+
 import org.pac4j.scribe.builder.api.DropboxApi20;
 
 import com.github.scribejava.core.builder.ServiceBuilder;
@@ -13,9 +15,13 @@ import com.github.scribejava.core.model.Verb;
 import com.github.scribejava.core.oauth.OAuth20Service;
 import com.google.gson.Gson;
 
+import jakarta.ws.rs.WebApplicationException;
+import jakarta.ws.rs.core.Response.Status;
 import tp1.api.Spreadsheet;
+import tp1.api.User;
 import tp1.api.service.rest.RestSpreadsheets;
 import tp1.impl.proxy.args.UploadArgs;
+import tp1.impl.srv.Domain;
 
 public class SheetsResourcesProxy implements RestSpreadsheets{
 	
@@ -26,6 +32,8 @@ public class SheetsResourcesProxy implements RestSpreadsheets{
 	protected static final String OCTET_STREAM_TYPE = "application/octet-stream";
 	private OAuth20Service service;
 	private OAuth2AccessToken accessToken;
+	final String DOMAIN = '@' + Domain.get();
+	private int idInc;
 	
 	private static final String UPLOAD_URL = "https://content.dropboxapi.com/2/files/upload";
 	
@@ -35,13 +43,12 @@ public class SheetsResourcesProxy implements RestSpreadsheets{
 		service = new ServiceBuilder(apiKey).apiSecret(apiSecret).build(DropboxApi20.INSTANCE);
 		accessToken = new OAuth2AccessToken(accessTokenStr);
 		json = new Gson();
-		
+		idInc=0;
 	}
 
 	@Override
 	public String createSpreadsheet(Spreadsheet sheet, String password) {
-		// TODO Auto-generated method stub
-//		Log.info("createSpreadsheet : " + sheet);
+		// TODO
 		if (badSheet(sheet) || password == null || wrongPassword(sheet.getOwner(), password))
 			return null;
 		
@@ -49,7 +56,13 @@ public class SheetsResourcesProxy implements RestSpreadsheets{
 		createSpreadsheet.addHeader("Dropbox-API-Arg", json.toJson(new UploadArgs("/sheets", "add",false,true,false)) );
 		createSpreadsheet.addHeader("Content-Type", OCTET_STREAM_TYPE);
 		
-		//createSpreadsheet
+		
+		var sheetId = sheet.getOwner() + "-" + DOMAIN +"-"+(idInc++);
+		sheet.setSheetId(sheetId);
+		sheet.setSheetURL(String.format("%s/%s/%s", DOMAIN, "sheets", sheetId));
+		sheet.setSharedWith(ConcurrentHashMap.newKeySet());
+		
+		//Load createSpreadsheet
 		createSpreadsheet.setPayload(json.toJson(sheet));
 		
 		service.signRequest(accessToken, createSpreadsheet);
@@ -58,21 +71,20 @@ public class SheetsResourcesProxy implements RestSpreadsheets{
 		
 		try {
 			r=service.execute(createSpreadsheet);
-		}catch(Exception e) {
 			
+			if(r.getCode() != 200) {
+				//erro
+				System.err.println(r.getBody());
+				throw new WebApplicationException(Status.BAD_REQUEST);
+			}
+			
+			
+			
+		}catch(Exception e) {
+			e.printStackTrace();
 		}
 		
 		return null;
-	}
-
-	private boolean wrongPassword(String owner, String password) {
-		// TODO Auto-generated method stub
-		return false;
-	}
-
-	private boolean badSheet(Spreadsheet sheet) {
-		// TODO Auto-generated method stub
-		return false;
 	}
 
 	@Override
@@ -122,5 +134,26 @@ public class SheetsResourcesProxy implements RestSpreadsheets{
 		// TODO Auto-generated method stub
 		return null;
 	}
-
+	
+	private boolean badSheet(Spreadsheet sheet) {
+		return sheet == null || !sheet.isValid();
+	}
+	
+	private boolean wrongPassword(String userId, String password) {
+		var user = getUser(userId);
+		return user == null || !user.getPassword().equals(password);
+	}
+	
+	private User getUser(String userId) {
+//		try {
+//			return users.get(userId);
+//		} catch (Exception x) {
+//			x.printStackTrace();
+//			return null;
+//		}
+		//TODO-get from dropbox
+		return null;
+		
+	}
+	
 }
