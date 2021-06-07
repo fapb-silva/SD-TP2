@@ -32,10 +32,12 @@ public class SheetsProxyServer extends AbstractRestServer {
 	public static void main(String[] args) throws Exception {
 		Domain.set(args.length > 0 ? args[0] : "?");	
 		//int port = args.length < 2 ? PORT : Integer.valueOf(args[1]);
-		clean = args.length < 2 ? false : Boolean.getBoolean(args[1]);//if args not length<2 then "false" else define "clean"
+		clean = args.length < 2 ? false : Boolean.parseBoolean(args[1]);//if args not length<2 then "false" else define "clean"
 		
 		Log.setLevel( Level.ALL );
-		
+		if(clean)Log.info("*********BOOLEAN CAUGHT AS TRUE**********");
+		else Log.info("*********BOOLEAN CAUGHT AS FALSE**********");
+		Log.info("**********CLEAN VALUE IS "+args[1]+"********");
 		new SheetsProxyServer(PORT).start();
 		
 	}

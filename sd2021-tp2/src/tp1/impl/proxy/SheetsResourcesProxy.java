@@ -83,10 +83,17 @@ public class SheetsResourcesProxy implements RestSpreadsheets {
 		accessToken = new OAuth2AccessToken(accessTokenStr);
 		json = new Gson();
 		idInc = 0;
+		
 		if (clean) {
 			OAuthRequest cleanStorage = new OAuthRequest(Verb.POST, DELETE_URL);
-			cleanStorage.addHeader("Content-Type", OCTET_STREAM_TYPE);
+			cleanStorage.addHeader("Content-Type", JSON_CONTENT_TYPE);
 			cleanStorage.setPayload(json.toJson(new DeleteArgs(DROPBOX_FOLDER)));
+			service.signRequest(accessToken, cleanStorage);
+			try {
+				service.execute(cleanStorage);
+			} catch (Exception e) {
+				e.printStackTrace();
+			}
 		}
 	}
 
@@ -131,7 +138,7 @@ public class SheetsResourcesProxy implements RestSpreadsheets {
 	public Spreadsheet getSpreadsheet(String sheetId, String userId, String password) {
 		if (badParam(sheetId) || badParam(userId))
 			throw new WebApplicationException(Status.BAD_REQUEST);
-		
+		Log.info("TRYING TO GET "+sheetId);
 		var sheet = proxyDownloadSheet(sheetId);
 		
 
@@ -387,8 +394,9 @@ public class SheetsResourcesProxy implements RestSpreadsheets {
 
 			if (r.getCode() != 200) {
 				// erro
-				System.err.println(r.getBody());
-				throw new WebApplicationException(Status.BAD_REQUEST);
+				Log.info("DID NOT GET SHEET");
+				Log.info("SHEET ERROR: "+r.getBody());
+				return null;
 			}
 			 sheet = json.fromJson(r.getBody(), Spreadsheet.class);
 		} catch (Exception e) {
@@ -399,7 +407,8 @@ public class SheetsResourcesProxy implements RestSpreadsheets {
 	}
 	private void proxyDeleteSheet(String sheetId) {
 		OAuthRequest deleteSpreadsheet = new OAuthRequest(Verb.POST, DELETE_URL);
-		deleteSpreadsheet.addHeader("Dropbox-API-Arg", json.toJson(new DeleteArgs(DROPBOX_FOLDER +"/"+ DOMAIN + "/" + sheetId)));
+		deleteSpreadsheet.addHeader("Content-Type",JSON_CONTENT_TYPE);
+		deleteSpreadsheet.setPayload(json.toJson(new DeleteArgs(DROPBOX_FOLDER +"/"+ DOMAIN + "/" + sheetId)));
 		service.signRequest(accessToken, deleteSpreadsheet);
 		try {
 			service.execute(deleteSpreadsheet);
