@@ -1,12 +1,5 @@
 package tp1.impl.proxy;
 
-import static tp1.api.service.java.Result.error;
-import static tp1.api.service.java.Result.ok;
-import static tp1.api.service.java.Result.ErrorCode.BAD_REQUEST;
-import static tp1.api.service.java.Result.ErrorCode.CONFLICT;
-import static tp1.api.service.java.Result.ErrorCode.FORBIDDEN;
-import static tp1.api.service.java.Result.ErrorCode.NOT_FOUND;
-
 import java.util.HashSet;
 import java.util.Map;
 import java.util.Set;
@@ -36,7 +29,6 @@ import tp1.api.service.rest.RestSpreadsheets;
 import tp1.engine.AbstractSpreadsheet;
 import tp1.engine.CellRange;
 import tp1.engine.SpreadsheetEngine;
-import tp1.impl.clt.SpreadsheetsClientFactory;
 import tp1.impl.clt.UsersClientFactory;
 import tp1.impl.engine.SpreadsheetEngineImpl;
 import tp1.impl.proxy.args.UploadArgs;
