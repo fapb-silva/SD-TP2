@@ -39,6 +39,7 @@ import tp1.impl.srv.common.JavaSpreadsheets;
 
 public class SheetsResourcesProxy implements RestSpreadsheets {
 
+	private static final String DROPBOX_FOLDER = "/SD-TP2";
 	private static final String apiKey = "qkwowwvw9cjgxcw";
 	private static final String apiSecret = "ohnj1xpcazkvtg6";
 	private static final String accessTokenStr = "P51dQLGFjpQAAAAAAAAAAe3lDMORWeu_Xpm48OQ7cZTwBNrNM5hwBN-sgpvgjU9B";
@@ -85,7 +86,7 @@ public class SheetsResourcesProxy implements RestSpreadsheets {
 		if (clean) {
 			OAuthRequest cleanStorage = new OAuthRequest(Verb.POST, DELETE_URL);
 			cleanStorage.addHeader("Content-Type", OCTET_STREAM_TYPE);
-			cleanStorage.setPayload(json.toJson(new DeleteArgs("")));
+			cleanStorage.setPayload(json.toJson(new DeleteArgs(DROPBOX_FOLDER)));
 		}
 	}
 
@@ -99,7 +100,7 @@ public class SheetsResourcesProxy implements RestSpreadsheets {
 
 //		var sheetId = sheet.getOwner() + "-" + DOMAIN +"-"+(idInc++);
 		sheet.setSheetId(sheetId);
-		sheet.setSheetURL(String.format("%s/%s", DOMAIN, sheetId));
+		sheet.setSheetURL(String.format("%s/%s/%s",DROPBOX_FOLDER, DOMAIN, sheetId));
 		sheet.setSharedWith(ConcurrentHashMap.newKeySet());
 
 		// Load createSpreadsheet
@@ -352,7 +353,7 @@ public class SheetsResourcesProxy implements RestSpreadsheets {
 	private String proxyUploadSheet(String sheetId, Spreadsheet sheet) {
 		OAuthRequest createSpreadsheet = new OAuthRequest(Verb.POST, UPLOAD_URL);
 		createSpreadsheet.addHeader("Dropbox-API-Arg",
-				json.toJson(new UploadArgs("/" + DOMAIN + "/" + sheetId, "add", false, false, false)));
+				json.toJson(new UploadArgs(DROPBOX_FOLDER+"/" + DOMAIN + "/" + sheetId, "add", false, false, false)));
 		createSpreadsheet.addHeader("Content-Type", OCTET_STREAM_TYPE);
 		createSpreadsheet.setPayload(json.toJson(sheet));
 		service.signRequest(accessToken, createSpreadsheet);
@@ -375,7 +376,7 @@ public class SheetsResourcesProxy implements RestSpreadsheets {
 	
 	private Spreadsheet proxyDownloadSheet(String sheetId) {
 		OAuthRequest getSpreadsheet = new OAuthRequest(Verb.POST, DOWNLOAD_URL);
-		getSpreadsheet.addHeader("Dropbox-API-Arg", json.toJson(new DownloadArgs("/" + DOMAIN + "/" + sheetId)));
+		getSpreadsheet.addHeader("Dropbox-API-Arg", json.toJson(new DownloadArgs(DROPBOX_FOLDER+"/" + DOMAIN + "/" + sheetId)));
 		service.signRequest(accessToken, getSpreadsheet);
 
 		Response r = null;
@@ -397,7 +398,7 @@ public class SheetsResourcesProxy implements RestSpreadsheets {
 	}
 	private void proxyDeleteSheet(String sheetId) {
 		OAuthRequest deleteSpreadsheet = new OAuthRequest(Verb.POST, DELETE_URL);
-		deleteSpreadsheet.addHeader("Dropbox-API-Arg", json.toJson(new DeleteArgs("/" + DOMAIN + "/" + sheetId)));
+		deleteSpreadsheet.addHeader("Dropbox-API-Arg", json.toJson(new DeleteArgs(DROPBOX_FOLDER +"/"+ DOMAIN + "/" + sheetId)));
 		service.signRequest(accessToken, deleteSpreadsheet);
 		try {
 			service.execute(deleteSpreadsheet);
@@ -409,7 +410,7 @@ public class SheetsResourcesProxy implements RestSpreadsheets {
 	private String proxyUpdateSheet(String sheetId, Spreadsheet sheet) {
 		OAuthRequest createSpreadsheet = new OAuthRequest(Verb.POST, UPLOAD_URL);
 		createSpreadsheet.addHeader("Dropbox-API-Arg",
-				json.toJson(new UploadArgs("/" + DOMAIN + "/" + sheetId, "update", false, false, false)));
+				json.toJson(new UploadArgs(DROPBOX_FOLDER+"/" + DOMAIN + "/" + sheetId, "update", false, false, false)));
 		createSpreadsheet.addHeader("Content-Type", OCTET_STREAM_TYPE);
 		createSpreadsheet.setPayload(json.toJson(sheet));
 		service.signRequest(accessToken, createSpreadsheet);
