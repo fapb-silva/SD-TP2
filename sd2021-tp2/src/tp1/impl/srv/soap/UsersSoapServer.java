@@ -28,6 +28,7 @@ public class UsersSoapServer {
 
 	public static void main(String[] args) throws Exception {
 		Domain.set(args.length > 0 ? args[0] : "?");
+		
 
 //		System.setProperty("com.sun.xml.ws.transport.http.client.HttpTransportPipe.dump", "true");
 //		System.setProperty("com.sun.xml.internal.ws.transport.http.client.HttpTransportPipe.dump", "true");
