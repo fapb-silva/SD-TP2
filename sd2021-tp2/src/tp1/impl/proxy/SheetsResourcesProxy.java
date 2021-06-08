@@ -6,6 +6,7 @@ import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.TimeUnit;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 
 import org.pac4j.scribe.builder.api.DropboxApi20;
 
@@ -29,6 +30,8 @@ import tp1.api.service.rest.RestSpreadsheets;
 import tp1.engine.AbstractSpreadsheet;
 import tp1.engine.CellRange;
 import tp1.engine.SpreadsheetEngine;
+import tp1.impl.clt.SheetsProxyClientFactory;
+import tp1.impl.clt.SpreadsheetsClientFactory;
 import tp1.impl.clt.UsersClientFactory;
 import tp1.impl.engine.SpreadsheetEngineImpl;
 import tp1.impl.proxy.args.UploadArgs;
@@ -36,6 +39,9 @@ import tp1.impl.proxy.args.DeleteArgs;
 import tp1.impl.proxy.args.DownloadArgs;
 import tp1.impl.srv.Domain;
 import tp1.impl.srv.common.JavaSpreadsheets;
+import tp1.impl.srv.rest.SheetsProxyServer;
+
+import tp1.impl.utils.IP;
 
 public class SheetsResourcesProxy implements RestSpreadsheets {
 
@@ -49,6 +55,8 @@ public class SheetsResourcesProxy implements RestSpreadsheets {
 	private static final String DELETE_URL = "https://api.dropboxapi.com/2/files/delete_v2";
 	private static final String DOWNLOAD_URL = "https://content.dropboxapi.com/2/files/download";
 
+	private static final Pattern SPREADSHEETS_URI_PATTERN = Pattern.compile("(.+)/spreadsheets/(.+)");
+
 	private OAuth20Service service;
 	private OAuth2AccessToken accessToken;
 
@@ -59,11 +67,12 @@ public class SheetsResourcesProxy implements RestSpreadsheets {
 	private static final long VALUES_CACHE_EXPIRATION = 20;
 	private Gson json;
 	private int idInc;
+	private String baseUri;
 	final SpreadsheetEngine engine;
 	private static final Set<String> DUMMY_SET = new HashSet<>();
 
 	private static Logger Log = Logger.getLogger(JavaSpreadsheets.class.getName());
-	
+
 	final Map<String, Set<String>> userSheets = new ConcurrentHashMap<>();
 
 	LoadingCache<String, User> users = CacheBuilder.newBuilder().maximumSize(USER_CACHE_CAPACITY)
@@ -83,7 +92,8 @@ public class SheetsResourcesProxy implements RestSpreadsheets {
 		accessToken = new OAuth2AccessToken(accessTokenStr);
 		json = new Gson();
 		idInc = 0;
-		
+		baseUri = String.format("https://%s:%d/rest%s", IP.hostAddress(), SheetsProxyServer.PORT, PATH);
+
 		if (clean) {
 			OAuthRequest cleanStorage = new OAuthRequest(Verb.POST, DELETE_URL);
 			cleanStorage.addHeader("Content-Type", JSON_CONTENT_TYPE);
@@ -104,15 +114,15 @@ public class SheetsResourcesProxy implements RestSpreadsheets {
 
 		var sheetId = sheet.getOwner() + "-" + DOMAIN + "-" + (idInc++);
 
-
 //		var sheetId = sheet.getOwner() + "-" + DOMAIN +"-"+(idInc++);
 		sheet.setSheetId(sheetId);
-		sheet.setSheetURL(String.format("%s/%s/%s",DROPBOX_FOLDER, DOMAIN, sheetId));
+		sheet.setSheetURL(String.format("%s/%s", baseUri, sheetId));
 		sheet.setSharedWith(ConcurrentHashMap.newKeySet());
 
 		// Load createSpreadsheet
 		userSheets.computeIfAbsent(sheet.getOwner(), (k) -> ConcurrentHashMap.newKeySet()).add(sheetId);
-		return proxyUploadSheet(sheetId,sheet);
+		Log.info("****UPLOAD WITH URL |" + sheet.getSheetURL() + "|*****");
+		return proxyUploadSheet(sheetId, sheet);
 	}
 
 	@Override
@@ -128,10 +138,8 @@ public class SheetsResourcesProxy implements RestSpreadsheets {
 		if (badParam(password) || wrongPassword(sheet.getOwner(), password))
 			throw new WebApplicationException(Status.FORBIDDEN);
 
-		
-			proxyDeleteSheet(sheetId);
-			userSheets.computeIfAbsent(sheet.getOwner(), (k) -> ConcurrentHashMap.newKeySet()).remove(sheetId);
-		
+		proxyDeleteSheet(sheetId);
+		userSheets.computeIfAbsent(sheet.getOwner(), (k) -> ConcurrentHashMap.newKeySet()).remove(sheetId);
 
 	}
 
@@ -139,9 +147,8 @@ public class SheetsResourcesProxy implements RestSpreadsheets {
 	public Spreadsheet getSpreadsheet(String sheetId, String userId, String password) {
 		if (badParam(sheetId) || badParam(userId))
 			throw new WebApplicationException(Status.BAD_REQUEST);
-		Log.info("TRYING TO GET "+sheetId);
+		Log.info("TRYING TO GET " + sheetId);
 		var sheet = proxyDownloadSheet(sheetId);
-		
 
 		if (sheet == null || userId == null || getUser(userId) == null)
 			throw new WebApplicationException(Status.NOT_FOUND);
@@ -163,7 +170,8 @@ public class SheetsResourcesProxy implements RestSpreadsheets {
 
 		if (badParam(password) || wrongPassword(userId, password) || !sheet.hasAccess(userId, DOMAIN))
 			throw new WebApplicationException(Status.FORBIDDEN);
-
+		Log.info("******1.GOT SHEET*****");
+		// String sheetPath = DROPBOX_FOLDER+"/"+id2Domain(sheetId)+"/"+sheetId;
 		var values = getComputedValues(sheetId);
 		if (values != null)
 			return values;
@@ -177,7 +185,7 @@ public class SheetsResourcesProxy implements RestSpreadsheets {
 			throw new WebApplicationException(Status.BAD_REQUEST);
 
 		var sheet = proxyDownloadSheet(sheetId);
-		
+
 		if (sheet == null)
 			throw new WebApplicationException(Status.NOT_FOUND);
 
@@ -195,7 +203,7 @@ public class SheetsResourcesProxy implements RestSpreadsheets {
 			throw new WebApplicationException(Status.BAD_REQUEST);
 
 		var sheet = proxyDownloadSheet(sheetId);
-		
+
 		if (sheet == null)
 			throw new WebApplicationException(Status.NOT_FOUND);
 
@@ -215,7 +223,7 @@ public class SheetsResourcesProxy implements RestSpreadsheets {
 			throw new WebApplicationException(Status.BAD_REQUEST);
 
 		var sheet = proxyDownloadSheet(sheetId);
-		
+
 		if (sheet == null)
 			throw new WebApplicationException(Status.NOT_FOUND);
 
@@ -238,25 +246,28 @@ public class SheetsResourcesProxy implements RestSpreadsheets {
 		}
 		_userSheets.clear();
 
-
 	}
 
 	@Override
 	public String[][] fetchSpreadsheetValues(String sheetId, String userId) {
+		
 		if (badParam(sheetId) || badParam(userId))
 			throw new WebApplicationException(Status.BAD_REQUEST);
-
+		Log.info("******11.GETTING EXTERNAL SHEET FROM FETCH*****");
 		var sheet = proxyDownloadSheet(sheetId);
 		if (sheet == null)
 			throw new WebApplicationException(Status.NOT_FOUND);
+		Log.info("******12. DID NOT GET EXTERNAL SHEET FROM FETCH*****");
 
 		if (!sheet.hasAccess(userId, DOMAIN))
 			throw new WebApplicationException(Status.FORBIDDEN);
-
+		Log.info("******12.GOT EXTERNAL SHEET FROM FETCH*****");
 		var values = getComputedValues(sheetId);
-		if (values != null)
+		if (values != null) {
+			Log.info("******13.GOT VALUES*****");
 			return values;
-		
+		}
+		Log.info("******13.DID NOT GET VALUES*****");
 		throw new WebApplicationException(Status.BAD_REQUEST);
 	}
 
@@ -285,9 +296,11 @@ public class SheetsResourcesProxy implements RestSpreadsheets {
 
 	private String[][] getComputedValues(String sheetId) {
 		try {
+			// String sheetId= url2Id(sheetPath);
 			var values = sheetValuesCache.getIfPresent(sheetId);
 			if (values == null) {
 				var sheet = proxyDownloadSheet(sheetId);
+				Log.info("******2.COMPUTED VALUE - GOT SHEET*****");
 				values = engine.computeSpreadsheetValues(new SpreadsheetProxyAdaptor(sheet));
 				sheetValuesCache.put(sheetId, values);
 			}
@@ -328,6 +341,7 @@ public class SheetsResourcesProxy implements RestSpreadsheets {
 
 		@Override
 		public String[][] getRangeValues(String sheetURL, String range) {
+			Log.info("******4.ADAPTER - Getting stuff from |" + sheetURL + "|*****");
 			var x = resolveRangeValues(sheetURL, range, sheet.getOwner() + DOMAIN);
 			Log.info("getRangeValues:" + sheetURL + " for::: " + range + "--->" + x);
 			return x;
@@ -337,18 +351,42 @@ public class SheetsResourcesProxy implements RestSpreadsheets {
 	public String[][] resolveRangeValues(String sheetUrl, String range, String userId) {
 
 		String[][] values = null;
-		var sheet = proxyDownloadSheet(url2Id(sheetUrl));
-		if (sheet != null)
-			values = getComputedValues(sheet.getSheetId());
-		else {
-			
-			sheet = proxyDownloadExternalSheet(sheetUrl);
-				values = fetchSpreadsheetValues(url2Id(sheetUrl), userId);
-				if (values!=null) {
+		String sheetId = url2Id(sheetUrl);
+		// String sheetPath = DROPBOX_FOLDER+"/"+DOMAIN+"/"+sheetId;
+		var sheet = proxyDownloadSheet(sheetId);
+		if (sheet != null) {
+			Log.info("******5.SHEET FOUND IN DOMAIN*****");
+			values = getComputedValues(sheetId);
+		} else {
+			var m = SPREADSHEETS_URI_PATTERN.matcher(sheetUrl);
+			if (m.matches()) {
+
+				var uri = m.group(1);
+				sheetId = m.group(2);
+				var resultProxy = SheetsProxyClientFactory.with(uri).fetchSpreadsheetValues(sheetId, userId);
+				if (resultProxy.isOK()) {
+					values = resultProxy.value();
 					sheetValuesCache.put(sheetUrl, values);
-				
+				} else {
+					var result = SpreadsheetsClientFactory.with(uri).fetchSpreadsheetValues(sheetId, userId);
+					if (result.isOK()) {
+						values = result.value();
+						sheetValuesCache.put(sheetUrl, values);
+					}
+				}
 			}
 			values = sheetValuesCache.getIfPresent(sheetUrl);
+
+			// Log.info("******5.SHEET NOT FOUND IN DOMAIN*****");
+			// Log.info("******6.SERACH SHEET, PATH: "+sheetPath+"*****");
+//			sheet = proxyDownloadExternalSheet(sheetPath);
+//			Log.info("******9.GOT EXTERNAL SHEET*****");
+//				values = fetchSpreadsheetValues(sheetId, userId);
+//				if (values!=null) {
+//					sheetValuesCache.put(sheetUrl, values);
+//				
+//			}
+//			values = sheetValuesCache.getIfPresent(sheetUrl);
 		}
 		return values == null ? null : new CellRange(range).extractRangeValuesFrom(values);
 	}
@@ -357,11 +395,17 @@ public class SheetsResourcesProxy implements RestSpreadsheets {
 		int i = url.lastIndexOf('/');
 		return url.substring(i + 1);
 	}
-	
+
+	private String id2Domain(String id) {
+		int s = id.indexOf("-@") + 1;
+		int e = id.lastIndexOf('-');
+		return id.substring(s, e);
+	}
+
 	private String proxyUploadSheet(String sheetId, Spreadsheet sheet) {
 		OAuthRequest createSpreadsheet = new OAuthRequest(Verb.POST, UPLOAD_URL);
 		createSpreadsheet.addHeader("Dropbox-API-Arg",
-				json.toJson(new UploadArgs(DROPBOX_FOLDER+"/" + DOMAIN + "/" + sheetId, "add", false, false, false)));
+				json.toJson(new UploadArgs(DROPBOX_FOLDER + "/" + DOMAIN + "/" + sheetId, "add", false, false, false)));
 		createSpreadsheet.addHeader("Content-Type", OCTET_STREAM_TYPE);
 		createSpreadsheet.setPayload(json.toJson(sheet));
 		service.signRequest(accessToken, createSpreadsheet);
@@ -379,12 +423,14 @@ public class SheetsResourcesProxy implements RestSpreadsheets {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
+		Log.info("****proxy UPLOAD WITH ID |" + sheetId + "|*****");
 		return sheetId;
 	}
-	
+
 	private Spreadsheet proxyDownloadSheet(String sheetId) {
 		OAuthRequest getSpreadsheet = new OAuthRequest(Verb.POST, DOWNLOAD_URL);
-		getSpreadsheet.addHeader("Dropbox-API-Arg", json.toJson(new DownloadArgs(DROPBOX_FOLDER+"/" + DOMAIN + "/" + sheetId)));
+		getSpreadsheet.addHeader("Dropbox-API-Arg",
+				json.toJson(new DownloadArgs(DROPBOX_FOLDER + "/" + DOMAIN + "/" + sheetId)));
 		getSpreadsheet.addHeader("Content-Type", OCTET_STREAM_TYPE);
 		service.signRequest(accessToken, getSpreadsheet);
 
@@ -396,32 +442,34 @@ public class SheetsResourcesProxy implements RestSpreadsheets {
 			if (r.getCode() != 200) {
 				// erro
 				Log.info("DID NOT GET SHEET");
-				Log.info("SHEET ERROR: "+r.getBody());
+				Log.info("SHEET ERROR: " + r.getBody());
 				return null;
 			}
-			 sheet = json.fromJson(r.getBody(), Spreadsheet.class);
+			sheet = json.fromJson(r.getBody(), Spreadsheet.class);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
 		return sheet;
-		
+
 	}
+
 	private void proxyDeleteSheet(String sheetId) {
 		OAuthRequest deleteSpreadsheet = new OAuthRequest(Verb.POST, DELETE_URL);
-		deleteSpreadsheet.addHeader("Content-Type",JSON_CONTENT_TYPE);
-		deleteSpreadsheet.setPayload(json.toJson(new DeleteArgs(DROPBOX_FOLDER +"/"+ DOMAIN + "/" + sheetId)));
+		deleteSpreadsheet.addHeader("Content-Type", JSON_CONTENT_TYPE);
+		deleteSpreadsheet.setPayload(json.toJson(new DeleteArgs(DROPBOX_FOLDER + "/" + DOMAIN + "/" + sheetId)));
 		service.signRequest(accessToken, deleteSpreadsheet);
 		try {
 			service.execute(deleteSpreadsheet);
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		
+
 	}
+
 	private String proxyUpdateSheet(String sheetId, Spreadsheet sheet) {
 		OAuthRequest createSpreadsheet = new OAuthRequest(Verb.POST, UPLOAD_URL);
-		createSpreadsheet.addHeader("Dropbox-API-Arg",
-				json.toJson(new UploadArgs(DROPBOX_FOLDER+"/" + DOMAIN + "/" + sheetId, "overwrite", false, false, false)));
+		createSpreadsheet.addHeader("Dropbox-API-Arg", json.toJson(
+				new UploadArgs(DROPBOX_FOLDER + "/" + DOMAIN + "/" + sheetId, "overwrite", false, false, false)));
 		createSpreadsheet.addHeader("Content-Type", OCTET_STREAM_TYPE);
 		createSpreadsheet.setPayload(json.toJson(sheet));
 		service.signRequest(accessToken, createSpreadsheet);
@@ -441,11 +489,13 @@ public class SheetsResourcesProxy implements RestSpreadsheets {
 		}
 		return sheetId;
 	}
-	private Spreadsheet proxyDownloadExternalSheet(String sheetUrl) {
-		OAuthRequest getSpreadsheet = new OAuthRequest(Verb.POST, DOWNLOAD_URL);
-		getSpreadsheet.addHeader("Dropbox-API-Arg", json.toJson(new DownloadArgs(sheetUrl)));
-		service.signRequest(accessToken, getSpreadsheet);
 
+	private Spreadsheet proxyDownloadExternalSheet(String sheetPath) {
+		OAuthRequest getSpreadsheet = new OAuthRequest(Verb.POST, DOWNLOAD_URL);
+		getSpreadsheet.addHeader("Dropbox-API-Arg", json.toJson(new DownloadArgs(sheetPath)));
+		getSpreadsheet.addHeader("Content-Type", OCTET_STREAM_TYPE);
+		service.signRequest(accessToken, getSpreadsheet);
+		Log.info("******7.STARTING EXTERNAL|" + sheetPath + "|*****");
 		Response r = null;
 		Spreadsheet sheet = null;
 		try {
@@ -454,14 +504,17 @@ public class SheetsResourcesProxy implements RestSpreadsheets {
 			if (r.getCode() != 200) {
 				// erro
 				System.err.println(r.getBody());
+				Log.info("******8.FAILED EXTERNAL*****");
 				throw new WebApplicationException(Status.BAD_REQUEST);
 			}
-			 sheet = json.fromJson(r.getBody(), Spreadsheet.class);
+			Log.info("******8.GOT EXTERNAL*****");
+			sheet = json.fromJson(r.getBody(), Spreadsheet.class);
 		} catch (Exception e) {
 			e.printStackTrace();
+			Log.info("******8.FAILED EXTERNAL EXECUTE FAIL*****");
 		}
 		return sheet;
-		
+
 	}
 
 }

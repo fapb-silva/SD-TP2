@@ -11,7 +11,7 @@ import tp1.impl.srv.Domain;
 public class SheetsProxyServer extends AbstractRestServer {
 
 	public static final int PORT = 9876;
-	public static final String SERVICE_NAME = "sheets";
+	public static final String SERVICE_NAME = "sheets_proxy";
 	public static boolean clean;
 	
 	private static Logger Log = Logger.getLogger(SheetsProxyServer.class.getName());

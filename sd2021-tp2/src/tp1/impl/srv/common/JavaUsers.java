@@ -16,6 +16,7 @@ import java.util.stream.Collectors;
 
 import tp1.api.User;
 import tp1.api.service.java.Result;
+import tp1.impl.clt.SheetsProxyClientFactory;
 import tp1.impl.clt.SpreadsheetsClientFactory;
 
 public class JavaUsers implements tp1.api.service.java.Users {
@@ -82,6 +83,9 @@ public class JavaUsers implements tp1.api.service.java.Users {
 			users.remove( userId);
 			executor.execute(()->{
 				SpreadsheetsClientFactory.get().deleteSpreadsheets( userId );
+			});
+			executor.execute(()->{
+				SheetsProxyClientFactory.get().deleteSpreadsheets( userId );
 			});
 			return ok(user);
 		}
