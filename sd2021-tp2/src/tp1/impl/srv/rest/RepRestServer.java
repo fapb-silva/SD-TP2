@@ -74,7 +74,7 @@ public class RepRestServer extends AbstractRestServer {
 //				lst.stream().forEach( e -> e.split("_")[1] < newPrimary ? newPrimary=e.split("_")[1] : null);
 				
 				for(String sonPath : lst) {
-					sonNumber = Integer.parseInt(sonPath.split("_")[1]);
+					sonNumber = Integer.parseInt(sonPath.substring(sonPath.lastIndexOf("_")+1));
 					if(sonNumber < minSon) {
 						minSon = sonNumber;
 						newPrimaryPath = sonPath;

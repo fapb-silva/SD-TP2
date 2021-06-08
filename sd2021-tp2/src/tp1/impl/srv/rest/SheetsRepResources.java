@@ -7,10 +7,11 @@ import jakarta.inject.Singleton;
 import jakarta.ws.rs.Path;
 import jakarta.ws.rs.WebApplicationException;
 import jakarta.ws.rs.core.Response;
-import jakarta.ws.rs.core.Response.Status;
 import tp1.api.Spreadsheet;
 import tp1.api.service.java.Spreadsheets;
 import tp1.api.service.rest.RestSpreadsheets;
+import tp1.impl.clt.RepSheetsClientFactory;
+import tp1.impl.clt.SpreadsheetsClientFactory;
 import tp1.impl.srv.common.JavaSpreadsheets;
 import tp1.impl.utils.IP;
 
@@ -22,13 +23,13 @@ public class SheetsRepResources extends RestResource implements RestSpreadsheets
 	private boolean isPrimary;
 
 	final Spreadsheets impl;
-	private String primaryURL;
+	private String primaryURI;
 
-	public SheetsRepResources(int isPrimary, String primaryURL) {
+	public SheetsRepResources(int isPrimary, String primaryURI) {
 		this.isPrimary = isPrimary == 1;
-		this.primaryURL = primaryURL;
+		this.primaryURI = primaryURI;
 
-		var uri = String.format("https://%s:%d/rest%s", IP.hostAddress(), SpreadsheetsRestServer.PORT, PATH);
+		var uri = String.format("https://%s:%d/rest%s", IP.hostAddress(), RepRestServer.PORT, PATH);
 		impl = new JavaSpreadsheets(uri);
 	}
 
@@ -36,10 +37,16 @@ public class SheetsRepResources extends RestResource implements RestSpreadsheets
 		Log.info(String.format("REST createSpreadsheet: sheet = %s\n", sheet));
 
 		if (isPrimary) {
+			//affect Primary
+			String result = super.resultOrThrow(impl.createSpreadsheet(sheet, password));
+			//share changes
+			String uri = "";
+			var resultFromRep = RepSheetsClientFactory.with(uri).createSpreadsheet(sheet, password);
+			//w8 for response
 			
-			return super.resultOrThrow(impl.createSpreadsheet(sheet, password));
+			return result;
 		}else
-			throw new WebApplicationException(Response.temporaryRedirect(URI.create(primaryURL)).build());
+			throw new WebApplicationException(Response.temporaryRedirect(URI.create(primaryURI)).build());
 	}
 
 	@Override
