@@ -1,7 +1,6 @@
 package tp1.impl.srv.rest;
 
 import java.net.URI;
-import java.security.NoSuchAlgorithmException;
 import java.util.logging.Logger;
 
 import javax.net.ssl.HttpsURLConnection;
