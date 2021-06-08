@@ -8,16 +8,17 @@ import jakarta.ws.rs.core.MediaType;
 import jakarta.ws.rs.core.Response;
 import jakarta.ws.rs.core.Response.Status;
 import tp1.api.Spreadsheet;
+import tp1.api.service.java.RepSpreadsheets;
 import tp1.api.service.java.Result;
-import tp1.api.service.java.Spreadsheets;
 import tp1.api.service.rest.RestSpreadsheets;
 
-public class RestSheetsRepClient extends RestClient implements Spreadsheets {
+public class RestSheetsRepClient extends RestClient implements RepSpreadsheets {
 	private static final String PASSWORD = "password";
 	private static final String USERID = "userId";
 	private static final String VALUES = "/values";
 	private static final String SHEETS = "/sheets";
 	private static final String FETCH = "/fetch";
+	private static final String REP = "/rep";
 
 	public RestSheetsRepClient(URI serverUri) {
 		super(serverUri, RestSpreadsheets.PATH);
@@ -112,6 +113,83 @@ public class RestSheetsRepClient extends RestClient implements Spreadsheets {
 	@Override
 	public Result<String[][]> fetchSpreadsheetValues(String sheetId, String userId) {
 		Response r = target.path( sheetId).path(FETCH)
+				.queryParam(USERID, userId)
+				.request()
+				.accept(  MediaType.APPLICATION_JSON)
+				.get();
+		
+		return super.responseContents(r, Status.OK, new GenericType<String[][]>() {});
+	}
+
+	//_________________________________________________________REP________________________________________________
+	
+	@Override
+	public Result<String> createSpreadsheet_Rep(Spreadsheet sheet, String password) {
+		Response r = target
+				.path(REP)
+				.queryParam(PASSWORD, password)
+				.request()
+				.accept(  MediaType.APPLICATION_JSON)
+				.post( Entity.entity(sheet, MediaType.APPLICATION_JSON));
+		return super.responseContents(r, Status.OK, new GenericType<String>() {});
+	}
+
+	@Override
+	public Result<Void> deleteSpreadsheet_Rep(String sheetId, String password) {
+		Response r = target
+				.path(REP+"/" + sheetId)
+				.queryParam(PASSWORD, password)
+				.request()
+				.accept(  MediaType.APPLICATION_JSON)
+				.delete();
+		return super.responseContents(r, Status.NO_CONTENT, null);
+	}
+
+	@Override
+	public Result<Spreadsheet> getSpreadsheet_Rep(String sheetId, String userId, String password) {
+		Response r = target.path(REP+"/")
+				.path(sheetId)
+				.queryParam(PASSWORD, password)
+				.queryParam(USERID, userId)
+				.request()
+				.accept(  MediaType.APPLICATION_JSON)
+				.get();
+		return super.responseContents(r, Status.OK, new GenericType<Spreadsheet>() {});
+	}
+
+	@Override
+	public Result<Void> shareSpreadsheet_Rep(String sheetId, String userId, String password) {
+		Response r = target.path(REP+String.format("/%s/share/%s", sheetId, userId))
+				.queryParam(PASSWORD, password)
+				.request()
+				.post(Entity.json(""));
+		return verifyResponse(r, Status.NO_CONTENT);
+	}
+
+	@Override
+	public Result<Void> unshareSpreadsheet_Rep(String sheetId, String userId, String password) {
+		Response r = target.path(REP+String.format("/%s/share/%s", sheetId, userId))
+				.queryParam(PASSWORD, password)
+				.request()
+				.delete();
+		return verifyResponse(r, Status.NO_CONTENT);
+	}
+
+	@Override
+	public Result<Void> updateCell_Rep(String sheetId, String cell, String rawValue, String userId, String password) {
+		Response r = target.path(REP+String.format("/%s/%s", sheetId, cell))
+				.queryParam(PASSWORD, password)
+				.queryParam(USERID, userId)
+				.request()
+				.put(Entity.entity(MediaType.APPLICATION_JSON, rawValue));
+		
+		return verifyResponse(r, Status.NO_CONTENT);
+	}
+
+	@Override
+	public Result<String[][]> getSpreadsheetValues_Rep(String sheetId, String userId, String password) {
+		Response r = target.path(REP+String.format("/%s%s", sheetId, VALUES))
+				.queryParam(PASSWORD, password)
 				.queryParam(USERID, userId)
 				.request()
 				.accept(  MediaType.APPLICATION_JSON)
