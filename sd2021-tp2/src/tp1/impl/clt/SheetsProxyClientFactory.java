@@ -1,6 +1,7 @@
 package tp1.impl.clt;
 
 import java.net.URI;
+import java.util.concurrent.TimeUnit;
 
 import com.google.common.cache.CacheBuilder;
 import com.google.common.cache.CacheLoader;
@@ -17,9 +18,10 @@ public class SheetsProxyClientFactory {
 
 	private static final String REST = "/rest";
 
-	private static final long CACHE_CAPACITY = 10;
+	private static final long CACHE_CAPACITY = 20;
+	private static final long VALUES_CACHE_EXPIRATION = 20;
 	
-	static LoadingCache<URI, Spreadsheets> sheets = CacheBuilder.newBuilder().maximumSize(CACHE_CAPACITY)
+	static LoadingCache<URI, Spreadsheets> sheets = CacheBuilder.newBuilder().maximumSize(CACHE_CAPACITY).expireAfterWrite(VALUES_CACHE_EXPIRATION, TimeUnit.SECONDS)
 			.build(new CacheLoader<>() {
 				@Override
 				public Spreadsheets load(URI uri) throws Exception {

@@ -64,7 +64,7 @@ public class SheetsResourcesProxy implements RestSpreadsheets {
 
 	final String DOMAIN = '@' + Domain.get();
 	private static final long USER_CACHE_CAPACITY = 100;
-	private static final long USER_CACHE_EXPIRATION = 120;
+	private static final long USER_CACHE_EXPIRATION = 10;
 	private static final long VALUES_CACHE_CAPACITY = 100;
 	private static final long VALUES_CACHE_EXPIRATION = 20;
 	private Gson json;
