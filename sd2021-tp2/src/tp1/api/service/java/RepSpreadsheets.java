@@ -28,7 +28,8 @@ public interface RepSpreadsheets{
 	Result<String> putSpreadsheet_Rep(Spreadsheet sheet, String sheetId );
 
 	Result<Void> removeSpreadsheet_Rep(String sheetId);
-			
+
+	Result<Void>  deleteSpreadsheets_Rep(String userId);
 
 
 

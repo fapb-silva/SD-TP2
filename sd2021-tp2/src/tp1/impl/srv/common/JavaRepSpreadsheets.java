@@ -352,6 +352,12 @@ public class JavaRepSpreadsheets implements RepSpreadsheets {
 		return ok();
 	}
 
+	@Override
+	public Result<Void> deleteSpreadsheets_Rep(String userId) {
+		return deleteSpreadsheets(userId);
+	}
+
+
 
 
 
