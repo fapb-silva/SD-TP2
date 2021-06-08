@@ -55,6 +55,14 @@ public class ZookeeperProcessor implements Watcher {
 			return null;
 		}
 	}
+	public byte[] getData( String path) {
+		try {
+			return zk.getData(path, false, null);
+		} catch (KeeperException | InterruptedException e) {
+			e.printStackTrace();
+			return null;
+		}
+	}
 
 	@Override
 	public void process(WatchedEvent event) {
