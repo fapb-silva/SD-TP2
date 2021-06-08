@@ -99,7 +99,7 @@ public class RepRestServer extends AbstractRestServer {
 					if (!secondary.equals(newPrimaryPath)) {
 						String URIsec = new String(zk.getData(secondary));
 						try {
-							var res = RepSheetsClientFactory.with(URIsec).turnIntoPrimary(newPrimaryPath);
+							//var res = RepSheetsClientFactory.with(URIsec).turnIntoPrimary(newPrimaryPath);
 						} catch (Exception e) {
 							e.getMessage();
 						}
@@ -111,7 +111,7 @@ public class RepRestServer extends AbstractRestServer {
 			private void turnIntoPrimary(List<String> lst, String newPrimaryPath) {
 				String newPrimaryURI = new String(zk.getData(newPrimaryPath));
 				try {
-					var res = RepSheetsClientFactory.with(newPrimaryURI).turnIntoPrimary(newPrimaryPath);
+					//var res = RepSheetsClientFactory.with(newPrimaryURI).turnIntoPrimary(newPrimaryPath);
 				} catch (Exception e) {
 					e.getMessage();
 				}
