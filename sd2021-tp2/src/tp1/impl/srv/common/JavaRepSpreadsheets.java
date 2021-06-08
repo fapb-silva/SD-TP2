@@ -333,6 +333,12 @@ public class JavaRepSpreadsheets implements RepSpreadsheets {
 		}
 		return values == null ? null : new CellRange(range).extractRangeValuesFrom(values);
 	}
+	
+	@Override
+	public Result<String> postSpreadsheet_Rep(Spreadsheet sheet, String sheetId) {
+		sheets.put(sheetId, sheet);
+		return ok(sheetId);
+	}
 
 	@Override
 	public Result<String> putSpreadsheet_Rep(Spreadsheet sheet, String sheetId) {

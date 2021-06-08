@@ -23,6 +23,8 @@ public interface RepSpreadsheets{
 	
 	//REP calls
 	
+	Result<String> postSpreadsheet_Rep(Spreadsheet sheet, String sheetId );
+	
 	Result<String> putSpreadsheet_Rep(Spreadsheet sheet, String sheetId );
 
 	Result<Void> removeSpreadsheet_Rep(String sheetId);
