@@ -31,7 +31,7 @@ static final String PATH="/spreadsheets";
 	@Path("/rep")
 	@Consumes(MediaType.APPLICATION_JSON)
 	@Produces(MediaType.APPLICATION_JSON)
-	String createSpreadsheet_Rep(Spreadsheet sheet, @QueryParam("password") String password );
+	String postSpreadsheet_Rep(Spreadsheet sheet, String sheetId );
 
 	
 	/**
@@ -47,7 +47,7 @@ static final String PATH="/spreadsheets";
 	 */
 	@DELETE
 	@Path("/rep/{sheetId}")
-	void deleteSpreadsheet_Rep(@PathParam("sheetId") String sheetId, @QueryParam("password") String password);
+	void removeSpreadsheet_Rep(@PathParam("sheetId") String sheetId);
 
 	/**
 	 * Retrieve a spreadsheet.
@@ -61,90 +61,15 @@ static final String PATH="/spreadsheets";
 	 *         403 if the password is incorrect.
 	 * 		   400 otherwise
 	 */
-	@GET
-	@Path("/rep/{sheetId}")
-	@Produces(MediaType.APPLICATION_JSON)
-	Spreadsheet getSpreadsheet_Rep(@PathParam("sheetId") String sheetId , @QueryParam("userId") String userId, 
-			@QueryParam("password") String password);
-		
-	
-	/**
-	 * Retrieves the calculated values of a spreadsheet.
-	 * @param userId - The user requesting the values
-	 * @param sheetId - the spreadsheet whose values are being retrieved.
-	 * @param password - the password of the owner of the spreadsheet
-	 * 
-	 * @return 200, if the operation is successful
-	 * 		   403, if the spreadsheet is not shared with user, or the user is not the owner, or the password is incorrect.
-	 * 		   404, if the spreadsheet or the user do not exist
-	 *		   400, otherwise
-	 */
-	@GET
-	@Path("/rep/{sheetId}/values")
-	@Produces(MediaType.APPLICATION_JSON)
-	String[][] getSpreadsheetValues_Rep(@PathParam("sheetId") String sheetId, 
-			@QueryParam("userId") String userId, @QueryParam("password") String password);
-
-
-	/**
-	 * Updates the raw values of some cells of a spreadsheet. 
-	 * 
-	 * @param userId - The user performing the update.
-	 * @param sheetId - the spreadsheet whose values are being retrieved.
-	 * @param cell - the cell being updated
-	 * @param rawValue - the new raw value of the cell
-	 * @param password - the password of the owner of the spreadsheet
-	 * 
-	 * @return 204, if the operation was successful
-	 * 		  404, if no spreadsheet exists with the given sheetid
-	 *        403, if the password is incorrect.
-	 *        400 otherwise
-	 **/
 	@PUT
-	@Path("/rep/{sheetId}/{cell}")
+	@Path("/rep/{sheetId}")
 	@Consumes(MediaType.APPLICATION_JSON)
-	void updateCell_Rep( @PathParam("sheetId") String sheetId, @PathParam("cell") String cell, String rawValue, 
-			@QueryParam("userId") String userId, @QueryParam("password") String password);
-
+	void putSpreadsheet_Rep(Spreadsheet sheet, @PathParam("sheetId") String sheetId);
 	
-	/**
-	 * Adds a new user to the list of shares of a spreadsheet. Only the owner can call this method.
-	 * 
-	 * @param sheetId - the sheet being shared.
-	 * @param userId - the user that is being added to the list of shares. In this method, the userId is represented
-	 *                 in the form userId@domain
-	 * @param password - The password of the owner of the spreadsheet.
-	 * 
-	 * @return 204, in case of success.
-	 * 		   404, if either the spreadsheet or user do not exist
-	 * 		   409, if the sheet is already shared with the user
-	 *         403 if the password is incorrect.
-	 * 		   400, otherwise
-	 * 
-	 */
-	@POST
-	@Path("/rep/{sheetId}/share/{userId}")
-	void shareSpreadsheet_Rep( @PathParam("sheetId") String sheetId, @PathParam("userId") String userId, 
-			@QueryParam("password") String password);
-
-	
-	/**
-	 * Removes a user from the list of shares of a spreadsheet. Only the owner can call this method.
-	 * 
-	 * @param sheetId - the sheet being shared.
-	 * @param userId - the user that is being added to the list of shares. In this method, the userId is represented
-	 *                 in the form userId@domain
-	 * @param password - The password of the owner of the spreadsheet.
-	 * 
-	 * @return 204, in case of success.
-	 * 		   404, if the spreadsheet, the user or the share do not exist
-	 *         403 if the password is incorrect.
-	 * 		   400, otherwise
-	 */
 	@DELETE
-	@Path("/rep/{sheetId}/share/{userId}")
-	void unshareSpreadsheet_Rep( @PathParam("sheetId") String sheetId, @PathParam("userId") String userId, 
-			@QueryParam("password") String password);
+	@Path("/rep/{userId}/sheets")
+	@Consumes(MediaType.APPLICATION_JSON)
+	void deleteSpreadsheets_Rep(@PathParam("userId") String userId);
+
 	
-	
-}
+}	

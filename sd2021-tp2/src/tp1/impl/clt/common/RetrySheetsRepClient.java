@@ -13,7 +13,7 @@ public class RetrySheetsRepClient extends RetryClient implements RepSpreadsheets
 	}
 	
 	@Override
-	public Result<String> createSpreadsheet(Spreadsheet sheet, String password) {
+	public Result<Spreadsheet> createSpreadsheet(Spreadsheet sheet, String password) {
 		return reTry( () -> impl.createSpreadsheet(sheet, password));
 	}
 
@@ -23,22 +23,22 @@ public class RetrySheetsRepClient extends RetryClient implements RepSpreadsheets
 	}
 
 	@Override
-	public Result<Void> deleteSpreadsheet(String sheetId, String password) {
+	public Result<String> deleteSpreadsheet(String sheetId, String password) {
 		return reTry( () -> impl.deleteSpreadsheet(sheetId, password));
 	}
 
 	@Override
-	public Result<Void> shareSpreadsheet(String sheetId, String userId, String password) {
+	public Result<Spreadsheet> shareSpreadsheet(String sheetId, String userId, String password) {
 		return reTry( () -> impl.shareSpreadsheet(sheetId, userId, password));
 	}
 
 	@Override
-	public Result<Void> unshareSpreadsheet(String sheetId, String userId, String password) {
+	public Result<Spreadsheet> unshareSpreadsheet(String sheetId, String userId, String password) {
 		return reTry( () -> impl.unshareSpreadsheet(sheetId, userId, password));
 	}
 
 	@Override
-	public Result<Void> updateCell(String sheetId, String cell, String rawValue, String userId, String password) {
+	public Result<Spreadsheet> updateCell(String sheetId, String cell, String rawValue, String userId, String password) {
 		return reTry( () -> impl.updateCell(sheetId, cell, rawValue, userId, password));
 	}
 
@@ -58,37 +58,27 @@ public class RetrySheetsRepClient extends RetryClient implements RepSpreadsheets
 	}
 
 	@Override
-	public Result<String> createSpreadsheet_Rep(Spreadsheet sheet, String password) {
-		return reTry( () -> impl.createSpreadsheet_Rep(sheet, password));
+	public Result<String> postSpreadsheet_Rep(Spreadsheet sheet, String stringId) {
+		return reTry( () -> impl.postSpreadsheet_Rep(sheet, stringId));
 	}
 
 	@Override
-	public Result<Void> deleteSpreadsheet_Rep(String sheetId, String password) {
-		return reTry( () -> impl.deleteSpreadsheet_Rep(sheetId, password));
+	public Result<Void> removeSpreadsheet_Rep(String sheetId) {
+		return reTry( () -> impl.removeSpreadsheet_Rep(sheetId));
 	}
 
-	@Override
-	public Result<Spreadsheet> getSpreadsheet_Rep(String sheetId, String userId, String password) {
-		return reTry( () -> impl.getSpreadsheet_Rep(sheetId, userId, password));
-	}
+	
 
 	@Override
-	public Result<Void> shareSpreadsheet_Rep(String sheetId, String userId, String password) {
-		return reTry( () -> impl.shareSpreadsheet_Rep(sheetId, userId, password));
+	public Result<String> putSpreadsheet_Rep(Spreadsheet sheet, String stringId) {
+		return reTry( () -> impl.putSpreadsheet_Rep(sheet, stringId));
+	}
+	@Override
+	public Result<Void> deleteSpreadsheets_Rep(String userId) {
+		return reTry( () -> impl.deleteSpreadsheets_Rep(userId));
 	}
 
-	@Override
-	public Result<Void> unshareSpreadsheet_Rep(String sheetId, String userId, String password) {
-		return reTry( () -> impl.unshareSpreadsheet_Rep(sheetId, userId, password));
-	}
+	
 
-	@Override
-	public Result<Void> updateCell_Rep(String sheetId, String cell, String rawValue, String userId, String password) {
-		return reTry( () -> impl.updateCell_Rep(sheetId, cell, rawValue, userId, password));
-	}
-
-	@Override
-	public Result<String[][]> getSpreadsheetValues_Rep(String sheetId, String userId, String password) {
-		return reTry( () -> impl.getSpreadsheetValues_Rep(sheetId, userId, password));
-	}
+	
 }

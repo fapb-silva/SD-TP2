@@ -25,24 +25,24 @@ public class RestSheetsRepClient extends RestClient implements RepSpreadsheets {
 	}
 
 	@Override
-	public Result<String> createSpreadsheet(Spreadsheet sheet, String password) {
+	public Result<Spreadsheet> createSpreadsheet(Spreadsheet sheet, String password) {
 		Response r = target
 				.queryParam(PASSWORD, password)
 				.request()
 				.accept(  MediaType.APPLICATION_JSON)
 				.post( Entity.entity(sheet, MediaType.APPLICATION_JSON));
-		return super.responseContents(r, Status.OK, new GenericType<String>() {});
+		return super.responseContents(r, Status.OK, new GenericType<Spreadsheet>() {});
 	}
 
 	@Override
-	public Result<Void> deleteSpreadsheet(String sheetId, String password) {
+	public Result<String> deleteSpreadsheet(String sheetId, String password) {
 		Response r = target
 				.path("/" + sheetId)
 				.queryParam(PASSWORD, password)
 				.request()
 				.accept(  MediaType.APPLICATION_JSON)
 				.delete();
-		return super.responseContents(r, Status.NO_CONTENT, null);
+		return super.responseContents(r, Status.OK, new GenericType<String>() {});
 	}
 
 	@Override
@@ -58,32 +58,32 @@ public class RestSheetsRepClient extends RestClient implements RepSpreadsheets {
 	}
 
 	@Override
-	public Result<Void> shareSpreadsheet(String sheetId, String userId, String password) {
+	public Result<Spreadsheet> shareSpreadsheet(String sheetId, String userId, String password) {
 		Response r = target.path(String.format("/%s/share/%s", sheetId, userId))
 				.queryParam(PASSWORD, password)
 				.request()
 				.post(Entity.json(""));
-		return verifyResponse(r, Status.NO_CONTENT);
+		return super.responseContents(r, Status.OK, new GenericType<Spreadsheet>() {});
 	}
 
 	@Override
-	public Result<Void> unshareSpreadsheet(String sheetId, String userId, String password) {
+	public Result<Spreadsheet> unshareSpreadsheet(String sheetId, String userId, String password) {
 		Response r = target.path(String.format("/%s/share/%s", sheetId, userId))
 				.queryParam(PASSWORD, password)
 				.request()
 				.delete();
-		return verifyResponse(r, Status.NO_CONTENT);
+		return super.responseContents(r, Status.OK, new GenericType<Spreadsheet>() {});
 	}
 
 	@Override
-	public Result<Void> updateCell(String sheetId, String cell, String rawValue, String userId, String password) {
+	public Result<Spreadsheet> updateCell(String sheetId, String cell, String rawValue, String userId, String password) {
 		Response r = target.path(String.format("/%s/%s", sheetId, cell))
 				.queryParam(PASSWORD, password)
 				.queryParam(USERID, userId)
 				.request()
 				.put(Entity.entity(MediaType.APPLICATION_JSON, rawValue));
 		
-		return verifyResponse(r, Status.NO_CONTENT);
+		return super.responseContents(r, Status.OK, new GenericType<Spreadsheet>() {});
 	}
 
 	@Override
@@ -124,10 +124,9 @@ public class RestSheetsRepClient extends RestClient implements RepSpreadsheets {
 	//_________________________________________________________REP________________________________________________
 	
 	@Override
-	public Result<String> createSpreadsheet_Rep(Spreadsheet sheet, String password) {
+	public Result<String> postSpreadsheet_Rep(Spreadsheet sheet, String sheetId) {
 		Response r = target
 				.path(REP)
-				.queryParam(PASSWORD, password)
 				.request()
 				.accept(  MediaType.APPLICATION_JSON)
 				.post( Entity.entity(sheet, MediaType.APPLICATION_JSON));
@@ -135,68 +134,36 @@ public class RestSheetsRepClient extends RestClient implements RepSpreadsheets {
 	}
 
 	@Override
-	public Result<Void> deleteSpreadsheet_Rep(String sheetId, String password) {
+	public Result<Void> removeSpreadsheet_Rep(String sheetId) {
 		Response r = target
 				.path(REP+"/" + sheetId)
-				.queryParam(PASSWORD, password)
 				.request()
 				.accept(  MediaType.APPLICATION_JSON)
 				.delete();
 		return super.responseContents(r, Status.NO_CONTENT, null);
 	}
 
+
 	@Override
-	public Result<Spreadsheet> getSpreadsheet_Rep(String sheetId, String userId, String password) {
-		Response r = target.path(REP+"/")
-				.path(sheetId)
-				.queryParam(PASSWORD, password)
-				.queryParam(USERID, userId)
+	public Result<String> putSpreadsheet_Rep(Spreadsheet sheet, String sheetId) {
+		Response r = target.path(REP+String.format("/%s/share", sheetId))
+				.request()
+				.put(Entity.entity(sheet, MediaType.APPLICATION_JSON));
+		return super.responseContents(r, Status.OK, new GenericType<String>() {});
+	}
+
+	@Override
+	public Result<Void> deleteSpreadsheets_Rep(String userId) {
+		Response r = target
+				.path(userId).path(SHEETS)
 				.request()
 				.accept(  MediaType.APPLICATION_JSON)
-				.get();
-		return super.responseContents(r, Status.OK, new GenericType<Spreadsheet>() {});
-	}
-
-	@Override
-	public Result<Void> shareSpreadsheet_Rep(String sheetId, String userId, String password) {
-		Response r = target.path(REP+String.format("/%s/share/%s", sheetId, userId))
-				.queryParam(PASSWORD, password)
-				.request()
-				.post(Entity.json(""));
-		return verifyResponse(r, Status.NO_CONTENT);
-	}
-
-	@Override
-	public Result<Void> unshareSpreadsheet_Rep(String sheetId, String userId, String password) {
-		Response r = target.path(REP+String.format("/%s/share/%s", sheetId, userId))
-				.queryParam(PASSWORD, password)
-				.request()
 				.delete();
-		return verifyResponse(r, Status.NO_CONTENT);
+		
+		return super.verifyResponse(r, Status.NO_CONTENT);
 	}
 
-	@Override
-	public Result<Void> updateCell_Rep(String sheetId, String cell, String rawValue, String userId, String password) {
-		Response r = target.path(REP+String.format("/%s/%s", sheetId, cell))
-				.queryParam(PASSWORD, password)
-				.queryParam(USERID, userId)
-				.request()
-				.put(Entity.entity(MediaType.APPLICATION_JSON, rawValue));
-		
-		return verifyResponse(r, Status.NO_CONTENT);
-	}
 
-	@Override
-	public Result<String[][]> getSpreadsheetValues_Rep(String sheetId, String userId, String password) {
-		Response r = target.path(REP+String.format("/%s%s", sheetId, VALUES))
-				.queryParam(PASSWORD, password)
-				.queryParam(USERID, userId)
-				.request()
-				.accept(  MediaType.APPLICATION_JSON)
-				.get();
-		
-		return super.responseContents(r, Status.OK, new GenericType<String[][]>() {});
-	}
 
 
 }
