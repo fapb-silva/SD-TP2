@@ -76,9 +76,33 @@ public class SheetsRepResources extends RestResource implements RepRestSpreadshe
 	
 	@Override
 	public void deleteSpreadsheet(String sheetId, String password) {
-		Log.info(String.format("REST deleteSpreadsheet: sheetId = %s\n", sheetId));
-
-		super.resultOrThrow(impl.deleteSpreadsheet(sheetId, password));
+		Log.info(String.format("REST createSpreadsheet: sheet = %s\n", sheetId));
+		if (isPrimary) {
+			//affect Primary
+			super.resultOrThrow(impl.deleteSpreadsheet(sheetId, password));
+			//share changes
+			URI[] uris = Discovery.getInstance().findUrisOf(SERVICE_NAME, 1);
+			int counterRep = 0;
+			
+			for(URI i : uris) {
+				String stringURI = i.toString();
+				
+				try {
+				var resultFromRep = RepSheetsClientFactory.with(stringURI).deleteSpreadsheet(sheetId, password);
+				if(resultFromRep.isOK())
+					counterRep++;
+				}catch(Exception e) {
+					e.getMessage();
+				}
+			}
+			//w8 for response
+			if(counterRep<uris.length)
+				Log.info("Counter of replicas who eard--------------------"+counterRep);
+			
+			
+		}else
+			throw new WebApplicationException(Response.temporaryRedirect(URI.create(primaryURI)).build());
+					
 	}
 	
 	@Override
