@@ -40,97 +40,117 @@ public class SheetsRepResources extends RestResource implements RepRestSpreadshe
 		Log.info(String.format("REST createSpreadsheet: sheet = %s\n", sheet));
 
 		if (isPrimary) {
-			//affect Primary
+			// affect Primary
 			String result = super.resultOrThrow(impl.createSpreadsheet(sheet, password));
-			//share changes
+			// share changes
 			URI[] uris = Discovery.getInstance().findUrisOf(SERVICE_NAME, 1);
 			int counterRep = 0;
-			
-			for(URI i : uris) {
+
+			for (URI i : uris) {
 				String stringURI = i.toString();
-				
+
 				try {
-				var resultFromRep = RepSheetsClientFactory.with(stringURI).createSpreadsheet_Rep(sheet, password);
-				if(resultFromRep.isOK())
-					counterRep++;
-				}catch(Exception e) {
+					var resultFromRep = RepSheetsClientFactory.with(stringURI).createSpreadsheet_Rep(sheet, password);
+					if (resultFromRep.isOK())
+						counterRep++;
+				} catch (Exception e) {
 					e.getMessage();
 				}
 			}
-			//w8 for response
-			if(counterRep<uris.length)
-				Log.info("Counter of replicas who eard--------------------"+counterRep);
-			
+			// w8 for response
+			if (counterRep < uris.length)
+				Log.info("Counter of replicas who eard--------------------" + counterRep);
+
 			return result;
-		}else
+		} else
 			throw new WebApplicationException(Response.temporaryRedirect(URI.create(primaryURI)).build());
 	}
-	
+
 	@Override
 	public String createSpreadsheet_Rep(Spreadsheet sheet, String password) {
 		Log.info(String.format("REST createSpreadsheet: sheet = %s\n", sheet));
-		
+
 		return super.resultOrThrow(impl.createSpreadsheet(sheet, password));
-		
+
 	}
-	
+
 	@Override
 	public void deleteSpreadsheet(String sheetId, String password) {
 		Log.info(String.format("REST createSpreadsheet: sheet = %s\n", sheetId));
 		if (isPrimary) {
-			//affect Primary
+			// affect Primary
 			super.resultOrThrow(impl.deleteSpreadsheet(sheetId, password));
-			//share changes
+			// share changes
 			URI[] uris = Discovery.getInstance().findUrisOf(SERVICE_NAME, 1);
 			int counterRep = 0;
-			
-			for(URI i : uris) {
+
+			for (URI i : uris) {
 				String stringURI = i.toString();
-				
+
 				try {
-				var resultFromRep = RepSheetsClientFactory.with(stringURI).deleteSpreadsheet(sheetId, password);
-				if(resultFromRep.isOK())
-					counterRep++;
-				}catch(Exception e) {
+					var resultFromRep = RepSheetsClientFactory.with(stringURI).deleteSpreadsheet_Rep(sheetId, password);
+					if (resultFromRep.isOK())
+						counterRep++;
+				} catch (Exception e) {
 					e.getMessage();
 				}
 			}
-			//w8 for response
-			if(counterRep<uris.length)
-				Log.info("Counter of replicas who eard--------------------"+counterRep);
-			
-			
-		}else
+			// w8 for response
+			if (counterRep < uris.length)
+				Log.info("Counter of replicas who eard--------------------" + counterRep);
+
+		} else
 			throw new WebApplicationException(Response.temporaryRedirect(URI.create(primaryURI)).build());
-					
+
 	}
-	
+
 	@Override
 	public void deleteSpreadsheet_Rep(String sheetId, String password) {
 		Log.info(String.format("REST deleteSpreadsheet: sheetId = %s\n", sheetId));
 
 		super.resultOrThrow(impl.deleteSpreadsheet(sheetId, password));
 	}
-	
+
 	@Override
 	public Spreadsheet getSpreadsheet(String sheetId, String userId, String password) {
 		Log.info(String.format("REST getSpreadsheet: sheetId = %s, userId = %s\n", sheetId, userId));
 
-		return super.resultOrThrow(impl.getSpreadsheet(sheetId, userId, password));
-	}
-	
-		@Override
-	public Spreadsheet getSpreadsheet_Rep(String sheetId, String userId, String password) {
-			Log.info(String.format("REST getSpreadsheet: sheetId = %s, userId = %s\n", sheetId, userId));
-
+		if (isPrimary) {
+			// affect Primary
 			return super.resultOrThrow(impl.getSpreadsheet(sheetId, userId, password));
+		} else//sends to primary
+			throw new WebApplicationException(Response.temporaryRedirect(URI.create(primaryURI)).build());
 	}
 
 	@Override
 	public void shareSpreadsheet(String sheetId, String userId, String password) {
 		Log.info(String.format("REST shareSpreadsheet: sheetId = %s, userId = %s\n", sheetId, userId));
 
-		super.resultOrThrow(impl.shareSpreadsheet(sheetId, userId, password));
+		if (isPrimary) {
+			// affect Primary
+			super.resultOrThrow(impl.shareSpreadsheet(sheetId, userId, password));
+			// share changes
+			URI[] uris = Discovery.getInstance().findUrisOf(SERVICE_NAME, 1);
+			int counterRep = 0;
+
+			for (URI i : uris) {
+				String stringURI = i.toString();
+
+				try {
+					var resultFromRep = RepSheetsClientFactory.with(stringURI).shareSpreadsheet_Rep(sheetId, userId,
+							password);
+					if (resultFromRep.isOK())
+						counterRep++;
+				} catch (Exception e) {
+					e.getMessage();
+				}
+			}
+			// w8 for response
+			if (counterRep < uris.length)
+				Log.info("Counter of replicas who eard--------------------" + counterRep);
+
+		} else
+			throw new WebApplicationException(Response.temporaryRedirect(URI.create(primaryURI)).build());
 	}
 
 	@Override
@@ -139,14 +159,39 @@ public class SheetsRepResources extends RestResource implements RepRestSpreadshe
 
 		super.resultOrThrow(impl.shareSpreadsheet(sheetId, userId, password));
 	}
-	
+
 	@Override
 	public void unshareSpreadsheet(String sheetId, String userId, String password) {
 		Log.info(String.format("REST unshareSpreadsheet: sheetId = %s, userId = %s\n", sheetId, userId));
 
-		super.resultOrThrow(impl.unshareSpreadsheet(sheetId, userId, password));
+		if (isPrimary) {
+			// affect Primary
+			super.resultOrThrow(impl.unshareSpreadsheet(sheetId, userId, password));
+			// share changes
+			URI[] uris = Discovery.getInstance().findUrisOf(SERVICE_NAME, 1);
+			int counterRep = 0;
+
+			for (URI i : uris) {
+				String stringURI = i.toString();
+
+				try {
+					var resultFromRep = RepSheetsClientFactory.with(stringURI).unshareSpreadsheet_Rep(sheetId, userId,
+							password);
+					if (resultFromRep.isOK())
+						counterRep++;
+				} catch (Exception e) {
+					e.getMessage();
+				}
+			}
+			// w8 for response
+			if (counterRep < uris.length)
+				Log.info("Counter of replicas who eard--------------------" + counterRep);
+
+		} else
+			throw new WebApplicationException(Response.temporaryRedirect(URI.create(primaryURI)).build());
+
 	}
-	
+
 	@Override
 	public void unshareSpreadsheet_Rep(String sheetId, String userId, String password) {
 		Log.info(String.format("REST unshareSpreadsheet: sheetId = %s, userId = %s\n", sheetId, userId));
@@ -159,9 +204,33 @@ public class SheetsRepResources extends RestResource implements RepRestSpreadshe
 		Log.info(String.format("REST updateCell: sheetId = %s, cell= %s, rawValue = %s, userId = %s\n", sheetId, cell,
 				rawValue, userId));
 
-		super.resultOrThrow(impl.updateCell(sheetId, cell, rawValue, userId, password));
+		if (isPrimary) {
+			// affect Primary
+			super.resultOrThrow(impl.updateCell(sheetId, cell, rawValue, userId, password));
+			// share changes
+			URI[] uris = Discovery.getInstance().findUrisOf(SERVICE_NAME, 1);
+			int counterRep = 0;
+
+			for (URI i : uris) {
+				String stringURI = i.toString();
+
+				try {
+					var resultFromRep = RepSheetsClientFactory.with(stringURI).updateCell_Rep(sheetId, cell, rawValue,
+							userId, password);
+					if (resultFromRep.isOK())
+						counterRep++;
+				} catch (Exception e) {
+					e.getMessage();
+				}
+			}
+			// w8 for response
+			if (counterRep < uris.length)
+				Log.info("Counter of replicas who eard--------------------" + counterRep);
+
+		} else
+			throw new WebApplicationException(Response.temporaryRedirect(URI.create(primaryURI)).build());
 	}
-	
+
 	@Override
 	public void updateCell_Rep(String sheetId, String cell, String rawValue, String userId, String password) {
 		Log.info(String.format("REST updateCell: sheetId = %s, cell= %s, rawValue = %s, userId = %s\n", sheetId, cell,
@@ -173,15 +242,11 @@ public class SheetsRepResources extends RestResource implements RepRestSpreadshe
 	@Override
 	public String[][] getSpreadsheetValues(String sheetId, String userId, String password) {
 		Log.info(String.format("REST getSpreadsheetValues: sheetId = %s, userId = %s\n", sheetId, userId));
-
-		return super.resultOrThrow(impl.getSpreadsheetValues(sheetId, userId, password));
-	}
-	
-	@Override
-	public String[][] getSpreadsheetValues_Rep(String sheetId, String userId, String password) {
-		Log.info(String.format("REST getSpreadsheetValues: sheetId = %s, userId = %s\n", sheetId, userId));
-
-		return super.resultOrThrow(impl.getSpreadsheetValues(sheetId, userId, password));
+		if (isPrimary) {
+			// affect Primary
+			return super.resultOrThrow(impl.getSpreadsheetValues(sheetId, userId, password));
+		} else//sends to primary
+			throw new WebApplicationException(Response.temporaryRedirect(URI.create(primaryURI)).build());
 	}
 
 	@Override
@@ -198,26 +263,10 @@ public class SheetsRepResources extends RestResource implements RepRestSpreadshe
 		return super.resultOrThrow(impl.fetchSpreadsheetValues(sheetId, userId));
 	}
 
-
-
-/*
- * notas:
- * primeira fase-
- * -falta mudar os url REST pra distinguir e chamar o _Rep
- * -falta defenir os metodos acedidos pelos clientes
- * 
- * segunda fase-
- * -fazer a gestao de quem é primary-zookeeper
- */
-
-
-
-	
-
-	
-
-
-
-	
+	/*
+	 * notas: primeira fase-
+	 * 
+	 * segunda fase- -fazer a gestao de quem é primary-zookeeper
+	 */
 
 }

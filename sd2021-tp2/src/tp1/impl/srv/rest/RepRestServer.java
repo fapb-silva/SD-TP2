@@ -82,6 +82,12 @@ public class RepRestServer extends AbstractRestServer {
 				}
 				
 				turnIntoPrimary(newPrimaryPath);
+				signalIsPrimary(lst, newPrimaryPath);
+			}
+
+			private void signalIsPrimary(List<String> lst, String newPrimaryPath) {
+				// TODO Auto-generated method stub
+				
 			}
 
 			private void turnIntoPrimary(String newPrimaryPath) {
