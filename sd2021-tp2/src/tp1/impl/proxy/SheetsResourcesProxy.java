@@ -35,6 +35,7 @@ import tp1.impl.clt.SpreadsheetsClientFactory;
 import tp1.impl.clt.UsersClientFactory;
 import tp1.impl.engine.SpreadsheetEngineImpl;
 import tp1.impl.proxy.args.UploadArgs;
+import tp1.impl.proxy.args.UserEntry;
 import tp1.impl.proxy.args.DeleteArgs;
 import tp1.impl.proxy.args.DownloadArgs;
 import tp1.impl.srv.Domain;
@@ -46,6 +47,8 @@ import tp1.impl.utils.IP;
 public class SheetsResourcesProxy implements RestSpreadsheets {
 
 	private static final String DROPBOX_FOLDER = "/SD-TP2";
+	private static final String SHEETS_PATH = "/sheets";
+	private static final String USERS_PATH = "/usersMap";
 	private static final String apiKey = "qkwowwvw9cjgxcw";
 	private static final String apiSecret = "ohnj1xpcazkvtg6";
 	private static final String accessTokenStr = "P51dQLGFjpQAAAAAAAAAAe3lDMORWeu_Xpm48OQ7cZTwBNrNM5hwBN-sgpvgjU9B";
@@ -73,7 +76,7 @@ public class SheetsResourcesProxy implements RestSpreadsheets {
 
 	private static Logger Log = Logger.getLogger(JavaSpreadsheets.class.getName());
 
-	final Map<String, Set<String>> userSheets = new ConcurrentHashMap<>();
+	// final Map<String, Set<String>> userSheets = new ConcurrentHashMap<>();
 
 	LoadingCache<String, User> users = CacheBuilder.newBuilder().maximumSize(USER_CACHE_CAPACITY)
 			.expireAfterWrite(USER_CACHE_EXPIRATION, TimeUnit.SECONDS).build(new CacheLoader<>() {
@@ -120,7 +123,11 @@ public class SheetsResourcesProxy implements RestSpreadsheets {
 		sheet.setSharedWith(ConcurrentHashMap.newKeySet());
 
 		// Load createSpreadsheet
-		userSheets.computeIfAbsent(sheet.getOwner(), (k) -> ConcurrentHashMap.newKeySet()).add(sheetId);
+		UserEntry userSheets = proxyDownloadUser(sheet.getOwner());
+		if (userSheets == null)
+			userSheets = new UserEntry();
+		userSheets.addCreatedSheet(sheetId);
+		proxyUploadUser(sheet.getOwner(), userSheets);
 		Log.info("****UPLOAD WITH URL |" + sheet.getSheetURL() + "|*****");
 		return proxyUploadSheet(sheetId, sheet);
 	}
@@ -139,7 +146,11 @@ public class SheetsResourcesProxy implements RestSpreadsheets {
 			throw new WebApplicationException(Status.FORBIDDEN);
 
 		proxyDeleteSheet(sheetId);
-		userSheets.computeIfAbsent(sheet.getOwner(), (k) -> ConcurrentHashMap.newKeySet()).remove(sheetId);
+		UserEntry userSheets = proxyDownloadUser(sheet.getOwner());
+		if (userSheets != null) {
+			userSheets.removeDeletedSheet(sheetId);
+			proxyUploadUser(sheet.getOwner(), userSheets);
+		}
 
 	}
 
@@ -240,17 +251,21 @@ public class SheetsResourcesProxy implements RestSpreadsheets {
 
 	@Override
 	public void deleteSpreadsheets(String userId) {
-		var _userSheets = userSheets.getOrDefault(userId, DUMMY_SET);
-		for (var sheetId : _userSheets) {
-			proxyDeleteSheet(sheetId);
+		var _userSheets = proxyDownloadUser(userId);
+		if (_userSheets != null) {
+			Set<String> entries = _userSheets.getSet();
+			for (var sheetId : entries) {
+				proxyDeleteSheet(sheetId);
+			}
+			proxyDeleteUser(userId);
+
 		}
-		_userSheets.clear();
 
 	}
 
 	@Override
 	public String[][] fetchSpreadsheetValues(String sheetId, String userId) {
-		
+
 		if (badParam(sheetId) || badParam(userId))
 			throw new WebApplicationException(Status.BAD_REQUEST);
 		Log.info("******11.GETTING EXTERNAL SHEET FROM FETCH*****");
@@ -396,16 +411,11 @@ public class SheetsResourcesProxy implements RestSpreadsheets {
 		return url.substring(i + 1);
 	}
 
-	private String id2Domain(String id) {
-		int s = id.indexOf("-@") + 1;
-		int e = id.lastIndexOf('-');
-		return id.substring(s, e);
-	}
-
 	private String proxyUploadSheet(String sheetId, Spreadsheet sheet) {
 		OAuthRequest createSpreadsheet = new OAuthRequest(Verb.POST, UPLOAD_URL);
 		createSpreadsheet.addHeader("Dropbox-API-Arg",
-				json.toJson(new UploadArgs(DROPBOX_FOLDER + "/" + DOMAIN + "/" + sheetId, "add", false, false, false)));
+				json.toJson(new UploadArgs(DROPBOX_FOLDER + SHEETS_PATH + "/" + DOMAIN + "/" + sheetId, "add", false,
+						false, false)));
 		createSpreadsheet.addHeader("Content-Type", OCTET_STREAM_TYPE);
 		createSpreadsheet.setPayload(json.toJson(sheet));
 		service.signRequest(accessToken, createSpreadsheet);
@@ -423,14 +433,14 @@ public class SheetsResourcesProxy implements RestSpreadsheets {
 		} catch (Exception e) {
 			e.printStackTrace();
 		}
-		Log.info("****proxy UPLOAD WITH ID |" + sheetId + "|*****");
+
 		return sheetId;
 	}
 
 	private Spreadsheet proxyDownloadSheet(String sheetId) {
 		OAuthRequest getSpreadsheet = new OAuthRequest(Verb.POST, DOWNLOAD_URL);
 		getSpreadsheet.addHeader("Dropbox-API-Arg",
-				json.toJson(new DownloadArgs(DROPBOX_FOLDER + "/" + DOMAIN + "/" + sheetId)));
+				json.toJson(new DownloadArgs(DROPBOX_FOLDER + SHEETS_PATH + "/" + DOMAIN + "/" + sheetId)));
 		getSpreadsheet.addHeader("Content-Type", OCTET_STREAM_TYPE);
 		service.signRequest(accessToken, getSpreadsheet);
 
@@ -456,7 +466,8 @@ public class SheetsResourcesProxy implements RestSpreadsheets {
 	private void proxyDeleteSheet(String sheetId) {
 		OAuthRequest deleteSpreadsheet = new OAuthRequest(Verb.POST, DELETE_URL);
 		deleteSpreadsheet.addHeader("Content-Type", JSON_CONTENT_TYPE);
-		deleteSpreadsheet.setPayload(json.toJson(new DeleteArgs(DROPBOX_FOLDER + "/" + DOMAIN + "/" + sheetId)));
+		deleteSpreadsheet
+				.setPayload(json.toJson(new DeleteArgs(DROPBOX_FOLDER + SHEETS_PATH + "/" + DOMAIN + "/" + sheetId)));
 		service.signRequest(accessToken, deleteSpreadsheet);
 		try {
 			service.execute(deleteSpreadsheet);
@@ -468,8 +479,9 @@ public class SheetsResourcesProxy implements RestSpreadsheets {
 
 	private String proxyUpdateSheet(String sheetId, Spreadsheet sheet) {
 		OAuthRequest createSpreadsheet = new OAuthRequest(Verb.POST, UPLOAD_URL);
-		createSpreadsheet.addHeader("Dropbox-API-Arg", json.toJson(
-				new UploadArgs(DROPBOX_FOLDER + "/" + DOMAIN + "/" + sheetId, "overwrite", false, false, false)));
+		createSpreadsheet.addHeader("Dropbox-API-Arg",
+				json.toJson(new UploadArgs(DROPBOX_FOLDER + "/" + DOMAIN + SHEETS_PATH + "/" + sheetId, "overwrite",
+						false, false, false)));
 		createSpreadsheet.addHeader("Content-Type", OCTET_STREAM_TYPE);
 		createSpreadsheet.setPayload(json.toJson(sheet));
 		service.signRequest(accessToken, createSpreadsheet);
@@ -490,31 +502,68 @@ public class SheetsResourcesProxy implements RestSpreadsheets {
 		return sheetId;
 	}
 
-	private Spreadsheet proxyDownloadExternalSheet(String sheetPath) {
-		OAuthRequest getSpreadsheet = new OAuthRequest(Verb.POST, DOWNLOAD_URL);
-		getSpreadsheet.addHeader("Dropbox-API-Arg", json.toJson(new DownloadArgs(sheetPath)));
-		getSpreadsheet.addHeader("Content-Type", OCTET_STREAM_TYPE);
-		service.signRequest(accessToken, getSpreadsheet);
-		Log.info("******7.STARTING EXTERNAL|" + sheetPath + "|*****");
+	private String proxyUploadUser(String userId, UserEntry sheets) {
+		OAuthRequest createUser = new OAuthRequest(Verb.POST, UPLOAD_URL);
+		createUser.addHeader("Dropbox-API-Arg",
+				json.toJson(new UploadArgs(DROPBOX_FOLDER + USERS_PATH + "/" + DOMAIN + "/" + userId, "overwrite",
+						false, false, false)));
+		createUser.addHeader("Content-Type", OCTET_STREAM_TYPE);
+		createUser.setPayload(json.toJson(sheets));
+		service.signRequest(accessToken, createUser);
+
 		Response r = null;
-		Spreadsheet sheet = null;
 		try {
-			r = service.execute(getSpreadsheet);
+			r = service.execute(createUser);
 
 			if (r.getCode() != 200) {
 				// erro
 				System.err.println(r.getBody());
-				Log.info("******8.FAILED EXTERNAL*****");
 				throw new WebApplicationException(Status.BAD_REQUEST);
 			}
-			Log.info("******8.GOT EXTERNAL*****");
-			sheet = json.fromJson(r.getBody(), Spreadsheet.class);
+
 		} catch (Exception e) {
 			e.printStackTrace();
-			Log.info("******8.FAILED EXTERNAL EXECUTE FAIL*****");
+		}
+
+		return userId;
+	}
+
+	private void proxyDeleteUser(String userId) {
+		OAuthRequest deleteUser = new OAuthRequest(Verb.POST, DELETE_URL);
+		deleteUser.addHeader("Content-Type", JSON_CONTENT_TYPE);
+		deleteUser.setPayload(json.toJson(new DeleteArgs(DROPBOX_FOLDER + USERS_PATH + "/" + DOMAIN + "/" + userId)));
+		service.signRequest(accessToken, deleteUser);
+		try {
+			service.execute(deleteUser);
+		} catch (Exception e) {
+			e.printStackTrace();
+		}
+
+	}
+
+	private UserEntry proxyDownloadUser(String userId) {
+		OAuthRequest getUser = new OAuthRequest(Verb.POST, DOWNLOAD_URL);
+		getUser.addHeader("Dropbox-API-Arg",
+				json.toJson(new DownloadArgs(DROPBOX_FOLDER + USERS_PATH + "/" + DOMAIN + "/" + userId)));
+		getUser.addHeader("Content-Type", OCTET_STREAM_TYPE);
+		service.signRequest(accessToken, getUser);
+
+		Response r = null;
+		UserEntry sheet = null;
+		try {
+			r = service.execute(getUser);
+
+			if (r.getCode() != 200) {
+				// erro
+				Log.info("DID NOT GET SHEET");
+				Log.info("SHEET ERROR: " + r.getBody());
+				return null;
+			}
+			sheet = json.fromJson(r.getBody(), UserEntry.class);
+		} catch (Exception e) {
+			e.printStackTrace();
 		}
 		return sheet;
 
 	}
-
 }
